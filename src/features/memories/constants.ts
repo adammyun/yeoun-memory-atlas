@@ -1,0 +1,3 @@
+export const PLACE_GROUP_RADIUS_METERS = 100;
+export const PLACE_GROUP_MAX_RADIUS_METERS = 500;
+export const PLACE_GROUP_LIMIT = 30;
