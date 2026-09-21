@@ -1,3 +1,5 @@
+import { DEFAULT_MAP_CENTER } from '@/src/features/map/constants';
+
 type CloudflareLocation = {
   city?: string;
   region?: string;
@@ -10,10 +12,13 @@ export async function GET(request: Request) {
   const lat = Number(cf?.latitude);
   const lng = Number(cf?.longitude);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return Response.json(
-      { message: '지역 위치를 확인할 수 없습니다.' },
-      { status: 404 },
-    );
+    return Response.json({
+      data: {
+        ...DEFAULT_MAP_CENTER,
+        label: '울산광역시',
+        precision: 'fallback',
+      },
+    });
   }
   const place = cf?.city || cf?.region;
   return Response.json({

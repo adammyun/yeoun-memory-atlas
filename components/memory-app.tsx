@@ -307,11 +307,23 @@ export default function MemoryApp({
         const response = await fetch('/api/location', { cache: 'no-store' });
         if (!response.ok) throw new Error('Regional location unavailable');
         const result = (await response.json()) as {
-          data: { lat: number; lng: number; label: string };
+          data: {
+            lat: number;
+            lng: number;
+            label: string;
+            precision: 'regional' | 'fallback';
+          };
         };
-        mapRef.current?.flyTo(result.data, 12.5);
+        mapRef.current?.flyTo(
+          result.data,
+          result.data.precision === 'regional' ? 12.5 : DEFAULT_MAP_ZOOM,
+        );
         setArea(result.data.label);
-        toast.info('정확한 위치 권한을 사용할 수 없어 지역 단위 위치를 보여드려요.');
+        toast.info(
+          result.data.precision === 'regional'
+            ? '정확한 위치 권한을 사용할 수 없어 지역 단위 위치를 보여드려요.'
+            : '현재 위치를 사용할 수 없어 기본 지역인 울산을 보여드려요.',
+        );
         return;
       } catch {
         showUlsanFallback();
