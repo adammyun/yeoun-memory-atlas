@@ -48,6 +48,8 @@ type PendingImage = {
   previewUrl: string;
 };
 
+type FormField = 'title' | 'content' | 'location_name' | 'memory_date';
+
 const fieldLabels: Record<string, string> = {
   title: '제목',
   content: '내용',
@@ -115,6 +117,9 @@ export default function MemoryForm({
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<FormField, string>>
+  >({});
   const [newImages, setNewImages] = useState<PendingImage[]>([]);
   const [removedMediaIds, setRemovedMediaIds] = useState<string[]>([]);
   const previewUrls = useRef(new Set<string>());
@@ -193,13 +198,18 @@ export default function MemoryForm({
     };
     setBusy(true);
     setError('');
+    setFieldErrors({});
     try {
       if (editing && memory) {
         const parsed = updateMemorySchema.safeParse(draft);
         if (!parsed.success) {
-          const issue = parsed.error.issues[0];
-          const field = fieldLabels[String(issue?.path[0])] ?? '입력값';
-          setError(`${field}을(를) 다시 확인해 주세요.`);
+          const nextErrors: Partial<Record<FormField, string>> = {};
+          for (const issue of parsed.error.issues) {
+            const key = String(issue.path[0]) as FormField;
+            if (!(key in fieldLabels) || nextErrors[key]) continue;
+            nextErrors[key] = `${fieldLabels[key]}을(를) 다시 확인해 주세요.`;
+          }
+          setFieldErrors(nextErrors);
           return;
         }
         onSaved(
@@ -213,9 +223,13 @@ export default function MemoryForm({
       } else {
         const parsed = createMemorySchema.safeParse(draft);
         if (!parsed.success) {
-          const issue = parsed.error.issues[0];
-          const field = fieldLabels[String(issue?.path[0])] ?? '입력값';
-          setError(`${field}을(를) 다시 확인해 주세요.`);
+          const nextErrors: Partial<Record<FormField, string>> = {};
+          for (const issue of parsed.error.issues) {
+            const key = String(issue.path[0]) as FormField;
+            if (!(key in fieldLabels) || nextErrors[key]) continue;
+            nextErrors[key] = `${fieldLabels[key]}을(를) 다시 확인해 주세요.`;
+          }
+          setFieldErrors(nextErrors);
           return;
         }
         onSaved(
@@ -295,12 +309,88 @@ export default function MemoryForm({
           <label>
             장소 이름 <small className="optional-label">선택</small>
             <input
+              id="memory-location-name"
               maxLength={160}
               value={locationName}
-              onChange={(event) => setLocationName(event.target.value)}
+              onChange={(event) => {
+                setLocationName(event.target.value);
+                setFieldErrors((current) => ({
+                  ...current,
+                  location_name: undefined,
+                }));
+              }}
               placeholder="예: 태화강 국가정원 산책로"
               disabled={editing}
+              aria-invalid={Boolean(fieldErrors.location_name)}
+              aria-describedby={
+                fieldErrors.location_name ? 'location-name-error' : undefined
+              }
             />
+            {fieldErrors.location_name && (
+              <small id="location-name-error" className="field-error">
+                {fieldErrors.location_name}
+              </small>
+            )}
+          </label>
+
+          <label>
+            기억의 제목
+            <input
+              id="memory-title"
+              required
+              maxLength={100}
+              value={title}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                setFieldErrors((current) => ({ ...current, title: undefined }));
+              }}
+              placeholder="어떻게 기억하고 있나요?"
+              aria-invalid={Boolean(fieldErrors.title)}
+              aria-describedby={fieldErrors.title ? 'title-error' : undefined}
+            />
+            <span className="field-support">
+              {fieldErrors.title ? (
+                <small id="title-error" className="field-error">
+                  {fieldErrors.title}
+                </small>
+              ) : (
+                <small>짧은 문장으로 기억의 장면을 적어보세요.</small>
+              )}
+              <small>{title.length}/100</small>
+            </span>
+          </label>
+
+          <label>
+            이야기
+            <textarea
+              id="memory-content"
+              required
+              maxLength={10_000}
+              rows={5}
+              value={content}
+              onChange={(event) => {
+                setContent(event.target.value);
+                setFieldErrors((current) => ({
+                  ...current,
+                  content: undefined,
+                }));
+              }}
+              placeholder="그날의 공기, 함께한 사람, 아직 남아 있는 마음…"
+              aria-invalid={Boolean(fieldErrors.content)}
+              aria-describedby={
+                fieldErrors.content ? 'content-error' : undefined
+              }
+            />
+            <span className="field-support">
+              {fieldErrors.content ? (
+                <small id="content-error" className="field-error">
+                  {fieldErrors.content}
+                </small>
+              ) : (
+                <small>입력한 내용은 저장에 실패해도 그대로 유지됩니다.</small>
+              )}
+              <small>{content.length.toLocaleString()}/10,000</small>
+            </span>
           </label>
 
           <div className="form-row">
@@ -309,8 +399,23 @@ export default function MemoryForm({
               <input
                 type="date"
                 value={memoryDate}
-                onChange={(event) => setMemoryDate(event.target.value)}
+                onChange={(event) => {
+                  setMemoryDate(event.target.value);
+                  setFieldErrors((current) => ({
+                    ...current,
+                    memory_date: undefined,
+                  }));
+                }}
+                aria-invalid={Boolean(fieldErrors.memory_date)}
+                aria-describedby={
+                  fieldErrors.memory_date ? 'memory-date-error' : undefined
+                }
               />
+              {fieldErrors.memory_date && (
+                <small id="memory-date-error" className="field-error">
+                  {fieldErrors.memory_date}
+                </small>
+              )}
             </label>
             <div className="field">
               <label id="emotion-label" htmlFor="memory-emotion">
@@ -341,29 +446,6 @@ export default function MemoryForm({
               </Select>
             </div>
           </div>
-
-          <label>
-            기억의 제목
-            <input
-              required
-              maxLength={100}
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="어떻게 기억하고 있나요?"
-            />
-          </label>
-
-          <label>
-            이야기
-            <textarea
-              required
-              maxLength={10_000}
-              rows={5}
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-              placeholder="그날의 공기, 함께한 사람, 아직 남아 있는 마음…"
-            />
-          </label>
 
           <section className="memory-images-field" aria-label="기억 사진">
             <div className="memory-images-heading">

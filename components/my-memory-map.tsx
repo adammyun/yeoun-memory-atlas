@@ -106,6 +106,7 @@ export default function MyMemoryMap({
   const [editing, setEditing] = useState<Memory | null>(null);
   const [createPoint, setCreatePoint] = useState<Point | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   // oxlint-disable react/react-compiler -- Loading state is reset for each server-filtered request.
   useEffect(() => {
@@ -214,6 +215,9 @@ export default function MyMemoryMap({
 
   return (
     <main className="atlas my-atlas">
+      <a className="skip-link" href="#my-memory-list">
+        내 기억 목록으로 건너뛰기
+      </a>
       <Toaster position="top-center" richColors />
       <header className="topbar">
         <Link className="brand" href="/">
@@ -223,7 +227,7 @@ export default function MyMemoryMap({
         </Link>
         <nav className="app-nav" aria-label="주요 메뉴">
           <Link href="/">지도</Link>
-          <Link className="active" href="/my-map">
+          <Link className="active" href="/my-map" aria-current="page">
             내 기억
           </Link>
           <button onClick={() => void signOut()}>
@@ -243,7 +247,20 @@ export default function MyMemoryMap({
         onCreate={setCreatePoint}
       />
 
-      <aside className="discovery my-memory-panel" aria-label="내 기억 목록">
+      <aside
+        id="my-memory-list"
+        className={`discovery my-memory-panel ${expanded ? 'expanded' : ''}`}
+        aria-label="내 기억 목록"
+        tabIndex={-1}
+      >
+        <button
+          className="mobile-sheet-toggle"
+          onClick={() => setExpanded((value) => !value)}
+          aria-label={expanded ? '내 기억 목록 접기' : '내 기억 목록 펼치기'}
+          aria-expanded={expanded}
+        >
+          <span />
+        </button>
         <div className="my-map-heading">
           <p className="eyebrow">MY MEMORY MAP</p>
           <h1>내가 기억하는 장소들</h1>
@@ -329,9 +346,14 @@ export default function MyMemoryMap({
         </div>
 
         {loadError && (
-          <output className="load-banner">내 기억을 불러오지 못했어요.</output>
+          <output className="load-banner">
+            내 기억을 불러오지 못했어요.
+            <button onClick={() => setRevision((value) => value + 1)}>
+              다시 시도
+            </button>
+          </output>
         )}
-        <div className="memory-list" aria-busy={loading}>
+        <div className="memory-list" aria-busy={loading} aria-live="polite">
           {loading ? (
             <div className="empty-state">
               <LoaderCircle className="spin" size={24} /> 기억을 펼치는 중…
@@ -357,8 +379,25 @@ export default function MyMemoryMap({
           ) : (
             <div className="empty-state">
               <Leaf size={26} />
-              <strong>조건에 맞는 기억이 없어요</strong>
-              <p>필터를 바꾸거나 지도에서 새 기억을 남겨보세요.</p>
+              <strong>
+                {activeFilterCount
+                  ? '조건에 맞는 기억이 없어요'
+                  : '아직 남긴 기억이 없어요'}
+              </strong>
+              <p>
+                {activeFilterCount
+                  ? '필터를 초기화하면 다른 기억을 다시 볼 수 있어요.'
+                  : '지도에서 장소를 골라 첫 기억을 남겨보세요.'}
+              </p>
+              {activeFilterCount > 0 && (
+                <button
+                  type="button"
+                  className="empty-reset"
+                  onClick={() => changeFilters({ emotions: [] })}
+                >
+                  필터 초기화
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -368,9 +407,10 @@ export default function MyMemoryMap({
         <span className="live-dot" /> 나의 기억 지도
         <span>정확한 위치는 로그인한 나에게만 표시됩니다</span>
       </div>
-      <div className="map-actions">
+      <div className={`map-actions ${expanded ? 'panel-expanded' : ''}`}>
         <button
           className="primary"
+          aria-label="현재 지도 중심에 새 기억 추가"
           onClick={() => {
             const center = mapRef.current?.center();
             if (center) setCreatePoint(center);

@@ -71,6 +71,9 @@ export default function MemoryMap({
     width: 0,
     height: 0,
   });
+  // Keep this size sync independent from MapLibre's load lifecycle. Some
+  // embedded browsers cannot finish WebGL initialization; the raster layer
+  // still needs a real viewport so the map never collapses to a blank panel.
   useEffect(() => {
     const node = rasterContainer.current;
     if (!node) return;

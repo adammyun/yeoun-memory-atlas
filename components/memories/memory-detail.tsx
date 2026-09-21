@@ -89,6 +89,9 @@ export default function MemoryDetail({
             ? `${formatDate(memory.memory_date)}의 기억`
             : formatDate(null)}
         </SheetDescription>
+        <div className={`story-body ${preview ? 'preview-story-body' : ''}`}>
+          {memory.content}
+        </div>
         {memory.media.length > 0 && (
           <div
             className={`memory-detail-gallery ${memory.media.length === 1 ? 'single' : ''}`}
@@ -106,9 +109,6 @@ export default function MemoryDetail({
             ))}
           </div>
         )}
-        <div className={`story-body ${preview ? 'preview-story-body' : ''}`}>
-          {memory.content}
-        </div>
         {preview && onOpenDetail && (
           <button
             className="primary full detail-open-button"

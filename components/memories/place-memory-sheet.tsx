@@ -94,7 +94,12 @@ export default function PlaceMemorySheet({
         <div className="place-heading">
           <div>
             <span className="eyebrow">SAME PLACE, DIFFERENT MEMORIES</span>
-            <SheetTitle className="place-title">{placeName}</SheetTitle>
+            <div className="place-title-row">
+              <SheetTitle className="place-title">{placeName}</SheetTitle>
+              <span className="place-memory-count" aria-label={`기억 ${memoryCount}개`}>
+                {memoryCount}
+              </span>
+            </div>
             <SheetDescription className="place-description">
               {memoryCount > 1
                 ? `이 장소에 ${memoryCount}개의 기억이 있습니다.`
@@ -132,7 +137,7 @@ export default function PlaceMemorySheet({
           </output>
         )}
 
-        <div className="place-timeline">
+        <div className="place-timeline" aria-busy={loading}>
           {memories.map((memory) => {
             const selected = memory.id === anchor.id;
             const emotion = emotions[memory.emotion];

@@ -369,6 +369,9 @@ export default function MemoryApp({
 
   return (
     <main className="atlas">
+      <a className="skip-link" href="#public-memory-list">
+        공개 기억 목록으로 건너뛰기
+      </a>
       <Toaster position="top-center" richColors />
       <header className="topbar">
         <Link className="brand" href="/" aria-label="여운 홈">
@@ -377,7 +380,7 @@ export default function MemoryApp({
           <span className="brand-caption">기억이 머무는 지도</span>
         </Link>
         <nav className="app-nav" aria-label="주요 메뉴">
-          <Link className="active" href="/">
+          <Link className="active" href="/" aria-current="page">
             지도
           </Link>
           {isAuthenticated ? (
@@ -434,8 +437,10 @@ export default function MemoryApp({
       )}
 
       <aside
+        id="public-memory-list"
         className={`discovery ${expanded ? 'expanded' : ''}`}
         aria-label="주변의 공개 기억"
+        tabIndex={-1}
       >
         <button
           className="mobile-sheet-toggle"
@@ -552,12 +557,13 @@ export default function MemoryApp({
         <button
           className="icon-button"
           aria-label="현재 위치로 이동"
-          onClick={locate}
+          onClick={() => void locate()}
         >
           <LocateFixed size={20} />
         </button>
         <button
           className="primary"
+          aria-label="현재 지도 중심에 기억 남기기"
           onClick={() => {
             const center = mapRef.current?.center();
             if (center) startCreate(center);

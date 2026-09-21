@@ -72,6 +72,10 @@ export default function PlaceSearch({
           }}
           placeholder="울산의 장소를 검색해보세요"
           aria-label="장소 이름"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={results !== null || failed}
+          aria-controls="place-search-results"
           autoComplete="off"
         />
         {query && (
@@ -86,15 +90,22 @@ export default function PlaceSearch({
       </div>
 
       {(results !== null || failed) && (
-        <div className="place-search-results" id="place-search-results">
+        <div
+          className="place-search-results"
+          id="place-search-results"
+          role="region"
+          aria-label="장소 검색 결과"
+        >
           {failed ? (
             <output>장소 검색을 잠시 사용할 수 없어요.</output>
           ) : results?.length ? (
-            <ul>
+            <ul role="listbox">
               {results.map((place) => (
                 <li key={place.id}>
                   <button
                     type="button"
+                    role="option"
+                    aria-selected="false"
                     onClick={() => {
                       clearSearch();
                       onSelect(place);
