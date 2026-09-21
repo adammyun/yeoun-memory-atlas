@@ -2540,6 +2540,7 @@ a {
 }
 .panorama-dialog {
   z-index: 80 !important;
+  transform: translate(-50%, -50%) !important;
   display: flex !important;
   width: min(1120px, calc(100vw - 40px)) !important;
   max-width: 1120px !important;
@@ -2653,7 +2654,6 @@ a {
     width: 100vw !important;
     max-width: none !important;
     height: 100dvh;
-    translate: none !important;
     transform: none !important;
     border: 0 !important;
     border-radius: 0 !important;

@@ -127,6 +127,7 @@ export default function PanoramaViewer({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         className="panorama-dialog"
+        style={{ translate: 'none' }}
         showCloseButton={false}
         onPointerDownOutside={(event) => event.preventDefault()}
       >
