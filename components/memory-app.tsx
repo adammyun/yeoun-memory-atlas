@@ -20,6 +20,7 @@ import MemoryDetail from './memories/memory-detail';
 import MemoryFilterSheet from './memories/memory-filter-sheet';
 import MemoryForm from './memories/memory-form';
 import MemoryMap, { type MapHandle } from './memories/map';
+import PanoramaViewer from './memories/panorama-viewer';
 import PlaceMemorySheet from './memories/place-memory-sheet';
 import PlaceSearch from './map/place-search';
 import {
@@ -51,6 +52,10 @@ import {
   replaceFilterUrl,
 } from '@/src/features/memories/filters';
 import type { MemoryFilters } from '@/src/features/memories/schemas';
+import {
+  memoryPanoramaTarget,
+  type PanoramaTarget,
+} from '@/src/features/panorama/target';
 
 function isInBounds(memory: Memory, bounds: Bounds | null) {
   if (!bounds) return true;
@@ -142,6 +147,8 @@ export default function MemoryApp({
   );
   const [area, setArea] = useState('울산광역시');
   const [expanded, setExpanded] = useState(false);
+  const [panoramaTarget, setPanoramaTarget] =
+    useState<PanoramaTarget | null>(null);
 
   // oxlint-disable react/react-compiler -- Loading state is reset when a new viewport request begins.
   useEffect(() => {
@@ -587,6 +594,9 @@ export default function MemoryApp({
         <MemoryDetail
           memory={selected}
           preview={false}
+          onOpenPanorama={() =>
+            setPanoramaTarget(memoryPanoramaTarget(selected))
+          }
           onClose={() => setSelected(null)}
           onLocate={() => {
             mapRef.current?.flyTo(selected);
@@ -603,6 +613,14 @@ export default function MemoryApp({
           error={placeError}
           openingMemoryId={openingMemoryId}
           onRetry={() => openPlace(placeAnchor)}
+          onOpenPanorama={() =>
+            setPanoramaTarget(
+              memoryPanoramaTarget(
+                placeAnchor,
+                placeGroup?.placeName || placeAnchor.location_name,
+              ),
+            )
+          }
           onOpenMemory={(id) => void openMemoryFromPlace(id)}
           onClose={() => {
             nearbyRequest.current?.abort();
@@ -620,6 +638,14 @@ export default function MemoryApp({
             setPlaceAnchor(null);
             setPlaceGroup(null);
           }}
+        />
+      )}
+
+      {panoramaTarget && (
+        <PanoramaViewer
+          placeName={panoramaTarget.placeName}
+          point={panoramaTarget.point}
+          onClose={() => setPanoramaTarget(null)}
         />
       )}
     </main>

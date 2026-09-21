@@ -5,6 +5,7 @@ import Image from 'next/image';
 import {
   ArrowRight,
   CalendarDays,
+  Eye,
   LoaderCircle,
   MapPin,
   UserRound,
@@ -49,6 +50,7 @@ export default function PlaceMemorySheet({
   onRetry,
   onClose,
   onLocate,
+  onOpenPanorama,
   onOpenMemory,
 }: {
   anchor: Memory;
@@ -59,6 +61,7 @@ export default function PlaceMemorySheet({
   onRetry: () => void;
   onClose: () => void;
   onLocate: () => void;
+  onOpenPanorama: () => void;
   onOpenMemory: (id: string) => void;
 }) {
   const nearby = group?.memories ?? [];
@@ -112,6 +115,19 @@ export default function PlaceMemorySheet({
             <X size={20} />
           </SheetClose>
         </div>
+
+        <button
+          type="button"
+          className="panorama-entry"
+          onClick={onOpenPanorama}
+        >
+          <Eye size={18} />
+          <span>
+            거리뷰
+            <small>이 장소 주변을 360°로 둘러보기</small>
+          </span>
+          <ArrowRight size={16} />
+        </button>
 
         {group && group.emotionSummary.length > 0 && memoryCount > 1 && (
           <div className="place-emotions" aria-label="이 장소의 감정 요약">

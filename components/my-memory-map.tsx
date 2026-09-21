@@ -18,7 +18,12 @@ import { Toaster, toast } from 'sonner';
 import MemoryDetail from './memories/memory-detail';
 import MemoryForm from './memories/memory-form';
 import MemoryMap, { type MapHandle } from './memories/map';
+import PanoramaViewer from './memories/panorama-viewer';
 import { logout } from '@/src/features/auth/api';
+import {
+  memoryPanoramaTarget,
+  type PanoramaTarget,
+} from '@/src/features/panorama/target';
 import { deleteMemory, fetchMyMemories } from '@/src/features/memories/api';
 import {
   emotions,
@@ -107,6 +112,8 @@ export default function MyMemoryMap({
   const [createPoint, setCreatePoint] = useState<Point | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [panoramaTarget, setPanoramaTarget] =
+    useState<PanoramaTarget | null>(null);
 
   // oxlint-disable react/react-compiler -- Loading state is reset for each server-filtered request.
   useEffect(() => {
@@ -440,6 +447,9 @@ export default function MyMemoryMap({
         <MemoryDetail
           memory={selected}
           preview={false}
+          onOpenPanorama={() =>
+            setPanoramaTarget(memoryPanoramaTarget(selected))
+          }
           deleting={deleting}
           onClose={() => setSelected(null)}
           onLocate={() => {
@@ -448,6 +458,13 @@ export default function MyMemoryMap({
           }}
           onEdit={() => setEditing(selected)}
           onDelete={() => void removeSelected()}
+        />
+      )}
+      {panoramaTarget && (
+        <PanoramaViewer
+          placeName={panoramaTarget.placeName}
+          point={panoramaTarget.point}
+          onClose={() => setPanoramaTarget(null)}
         />
       )}
     </main>

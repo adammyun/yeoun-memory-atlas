@@ -15,6 +15,7 @@ import {
   X,
   ArrowUpRight,
   BookOpen,
+  Eye,
   LoaderCircle,
   Pencil,
   Trash2,
@@ -26,6 +27,7 @@ export default function MemoryDetail({
   onClose,
   onLocate,
   onOpenDetail,
+  onOpenPanorama,
   preview,
   loading = false,
   onEdit,
@@ -36,6 +38,7 @@ export default function MemoryDetail({
   onClose: () => void;
   onLocate: () => void;
   onOpenDetail?: () => void;
+  onOpenPanorama: () => void;
   preview: boolean;
   loading?: boolean;
   onEdit?: () => void;
@@ -123,6 +126,18 @@ export default function MemoryDetail({
             {loading ? '기억을 불러오는 중…' : '기억 자세히 보기'}
           </button>
         )}
+        <button
+          type="button"
+          className="panorama-entry panorama-entry-compact"
+          onClick={onOpenPanorama}
+        >
+          <Eye size={18} />
+          <span>
+            거리뷰
+            <small>기억이 남겨진 장소 주변 둘러보기</small>
+          </span>
+          <ArrowUpRight size={17} />
+        </button>
         <button className="location-card" onClick={onLocate}>
           <span className="location-card-icon">
             <MapPin size={23} />

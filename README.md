@@ -12,6 +12,8 @@
 
 공개 지도 API는 `visibility = 'public'` 조건을 서버에서 강제합니다. 비공개 및 링크 공유 기억은 소유자만 읽을 수 있습니다. `approximate` 위치는 원좌표와 공개 좌표를 별도로 저장하며, 공개 API는 반올림된 공개 좌표만 반환합니다. 공개 응답에는 `user_id`가 포함되지 않습니다.
 
+기억 상세와 장소별 기억 화면에서는 기억이 남겨진 장소를 NAVER의 360° 거리뷰로 둘러볼 수 있습니다. NAVER Panorama 안의 AroundControl에서 거리뷰와 항공뷰를 전환합니다. 메인 지도와 장소 검색은 기존 MapLibre와 Photon 구성을 그대로 사용합니다.
+
 ## 로컬 실행
 
 일반 개발 환경에서는 Node.js 22와 pnpm 11을 설치한 뒤 아래 명령을 실행합니다.
@@ -25,6 +27,18 @@ pnpm dev
 ```
 
 개발 서버의 `/signin-with-chatgpt?return_to=/` 경로는 로컬 모의 사용자로 로그인합니다. 빌드된 Worker의 `pnpm start`는 인증을 모의하지 않습니다.
+
+## NAVER 거리뷰 설정
+
+1. NAVER Cloud Platform의 **Services → Application Services → Maps**에서 Application을 만들고 Web Dynamic Map을 사용하도록 설정합니다.
+2. Web Service URL에 개발용 `http://localhost`와 시연용 `https://yeoun-memory-atlas.finn7132.chatgpt.site`의 호스트를 등록합니다. 콘솔 지침에 따라 포트와 경로는 제외합니다.
+3. 발급된 Web SDK Client ID를 `.env.local`에 설정합니다.
+
+```bash
+NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID=your_web_sdk_client_id
+```
+
+브라우저 SDK가 사용하는 Client ID만 `NEXT_PUBLIC_` 변수로 전달합니다. Client Secret은 프런트엔드 코드, `.env.example`, Git 저장소에 넣지 않습니다. SDK는 사용자가 **거리뷰**를 열 때만 `panorama` 서브모듈과 함께 로드됩니다. 장소에 따라 제공 가능한 거리뷰나 항공뷰가 없을 수 있으며, 이 경우 앱은 안내 화면을 표시합니다.
 
 ## 검증
 
