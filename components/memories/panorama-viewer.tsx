@@ -70,8 +70,12 @@ export default function PanoramaViewer({
           maps.Event.addListener(panorama, 'pano_status', (...args) => {
             if (cancelled) return;
             const status = String(args[0] ?? '');
-            if (status === 'OK') setState('ready');
-            if (status === 'ERROR') setState('unavailable');
+            if (status !== 'OK' && status !== 'ERROR') return;
+            if (statusTimer !== null) {
+              window.clearTimeout(statusTimer);
+              statusTimer = null;
+            }
+            setState(status === 'OK' ? 'ready' : 'unavailable');
           }),
         );
 
@@ -87,7 +91,8 @@ export default function PanoramaViewer({
         observer.observe(container);
 
         statusTimer = window.setTimeout(() => {
-          if (!cancelled && !panorama?.getPanoId()) setState('unavailable');
+          if (cancelled) return;
+          setState(panorama?.getPanoId() ? 'ready' : 'unavailable');
         }, 12_000);
       } catch (reason) {
         if (cancelled) return;
