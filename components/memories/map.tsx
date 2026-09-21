@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Map as LibreMap,
   setWorkerUrl,
@@ -21,6 +21,22 @@ export type MapHandle = {
   center: () => Point;
   zoom: (delta: number) => void;
 };
+
+type ViewState = {
+  center: Point;
+  zoom: number;
+  width: number;
+  height: number;
+};
+
+function project(point: Point, zoom: number) {
+  const size = 256 * 2 ** zoom;
+  const sin = Math.sin((Math.max(-85, Math.min(85, point.lat)) * Math.PI) / 180);
+  return {
+    x: ((point.lng + 180) / 360) * size,
+    y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * size,
+  };
+}
 export default function MemoryMap({
   memories,
   onBounds,
@@ -41,6 +57,7 @@ export default function MemoryMap({
   mapRef: React.RefObject<MapHandle | null>;
 }) {
   const container = useRef<HTMLElement>(null);
+  const rasterContainer = useRef<HTMLDivElement>(null);
   const map = useRef<MapType | null>(null);
   const callbacks = useRef({ onBounds, onSelect, onCreate, memories });
   useEffect(() => {
@@ -48,6 +65,45 @@ export default function MemoryMap({
   }, [onBounds, onSelect, onCreate, memories]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
+  const [view, setView] = useState<ViewState>({
+    center: DEFAULT_MAP_CENTER,
+    zoom: DEFAULT_MAP_ZOOM,
+    width: 0,
+    height: 0,
+  });
+  useEffect(() => {
+    const node = rasterContainer.current;
+    if (!node) return;
+    const syncSize = () => {
+      const rect = node.getBoundingClientRect();
+      setView((current) => ({
+        ...current,
+        width: rect.width,
+        height: rect.height,
+      }));
+    };
+    syncSize();
+    const ownerWindow = node.ownerDocument.defaultView;
+    const ResizeObserverClass = ownerWindow?.ResizeObserver;
+    const resizeObserver = ResizeObserverClass
+      ? new ResizeObserverClass(syncSize)
+      : null;
+    resizeObserver?.observe(node);
+    ownerWindow?.addEventListener('resize', syncSize);
+    ownerWindow?.addEventListener('load', syncSize);
+    const layoutTimers = ownerWindow
+      ? [
+          ownerWindow.setTimeout(syncSize, 0),
+          ownerWindow.setTimeout(syncSize, 250),
+        ]
+      : [];
+    return () => {
+      resizeObserver?.disconnect();
+      ownerWindow?.removeEventListener('resize', syncSize);
+      ownerWindow?.removeEventListener('load', syncSize);
+      layoutTimers.forEach((timer) => ownerWindow?.clearTimeout(timer));
+    };
+  }, []);
   useEffect(() => {
     if (!container.current) return;
     let instance: MapType;
@@ -57,23 +113,12 @@ export default function MemoryMap({
         container: container.current,
         style: configuredStyle || {
           version: 8,
-          sources: {
-            basemap: {
-              type: 'raster',
-              tiles: [
-                'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-              ],
-              tileSize: 256,
-              attribution:
-                '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
-            },
-          },
+          sources: {},
           layers: [
             {
-              id: 'base',
-              type: 'raster',
-              source: 'basemap',
-              paint: { 'raster-saturation': -0.6, 'raster-opacity': 0.82 },
+              id: 'base-background',
+              type: 'background',
+              paint: { 'background-color': '#e9ede5' },
             },
           ],
         },
@@ -82,7 +127,10 @@ export default function MemoryMap({
         minZoom: 3,
         maxZoom: 19,
         renderWorldCopies: false,
-        attributionControl: { compact: true },
+        attributionControl: {
+          compact: true,
+          customAttribution: '© OpenStreetMap © CARTO',
+        },
       });
     } catch {
       queueMicrotask(() => setError(true));
@@ -107,6 +155,26 @@ export default function MemoryMap({
         north: Math.min(85, b.getNorth()),
       });
     };
+    const syncView = () => {
+      const center = instance.getCenter();
+      const rect = instance.getContainer().getBoundingClientRect();
+      setView({
+        center: { lng: center.lng, lat: center.lat },
+        zoom: instance.getZoom(),
+        width: rect.width,
+        height: rect.height,
+      });
+    };
+    syncView();
+    const mapContainer = instance.getContainer();
+    const ResizeObserverClass = mapContainer.ownerDocument.defaultView?.ResizeObserver;
+    const resizeObserver = ResizeObserverClass
+      ? new ResizeObserverClass(() => {
+          instance.resize();
+          syncView();
+        })
+      : null;
+    resizeObserver?.observe(mapContainer);
     instance.on('load', () => {
       instance.addSource('draft-location', {
         type: 'geojson',
@@ -202,8 +270,10 @@ export default function MemoryMap({
         },
       });
       setReady(true);
+      syncView();
       report();
     });
+    instance.on('move', syncView);
     instance.on('moveend', report);
     instance.on('error', () => setError(true));
     instance.on('idle', () => setError(false));
@@ -268,6 +338,7 @@ export default function MemoryMap({
     });
     return () => {
       stop();
+      resizeObserver?.disconnect();
       mapRef.current = null;
       map.current = null;
       instance.remove();
@@ -307,6 +378,49 @@ export default function MemoryMap({
         : [],
     });
   }, [draftPoint, ready]);
+
+  const rasterTiles = useMemo(() => {
+    if (!view.width || !view.height) return [];
+    const z = Math.max(3, Math.min(19, Math.floor(view.zoom)));
+    const scale = 2 ** (view.zoom - z);
+    const tileSize = 256 * scale;
+    const center = project(view.center, z);
+    const minX = Math.floor(center.x / 256 - view.width / (2 * tileSize)) - 1;
+    const maxX = Math.ceil(center.x / 256 + view.width / (2 * tileSize)) + 1;
+    const minY = Math.max(0, Math.floor(center.y / 256 - view.height / (2 * tileSize)) - 1);
+    const edge = 2 ** z;
+    const maxY = Math.min(edge - 1, Math.ceil(center.y / 256 + view.height / (2 * tileSize)) + 1);
+    const tiles: Array<{ key: string; src: string; left: number; top: number; size: number }> = [];
+    for (let x = minX; x <= maxX; x += 1) {
+      for (let y = minY; y <= maxY; y += 1) {
+        const wrappedX = ((x % edge) + edge) % edge;
+        tiles.push({
+          key: `${z}:${x}:${y}`,
+          src: `/api/map-tiles/${z}/${wrappedX}/${y}`,
+          left: view.width / 2 + (x * 256 - center.x) * scale,
+          top: view.height / 2 + (y * 256 - center.y) * scale,
+          size: tileSize,
+        });
+      }
+    }
+    return tiles;
+  }, [view]);
+
+  const markerGroups = useMemo(() => {
+    const center = project(view.center, view.zoom);
+    const groups: Array<{ x: number; y: number; memories: Memory[] }> = [];
+    for (const memory of memories) {
+      const point = project(memory, view.zoom);
+      const x = view.width / 2 + point.x - center.x;
+      const y = view.height / 2 + point.y - center.y;
+      if (x < -40 || y < -40 || x > view.width + 40 || y > view.height + 40) continue;
+      const group = groups.find((item) => Math.hypot(item.x - x, item.y - y) < 34);
+      if (group) group.memories.push(memory);
+      else groups.push({ x, y, memories: [memory] });
+    }
+    return groups;
+  }, [memories, view]);
+
   return (
     <>
       <section
@@ -314,6 +428,45 @@ export default function MemoryMap({
         className="map-surface"
         aria-label="기억 지도. 지점을 클릭하거나 길게 눌러 기억을 남기세요."
       />
+      <div
+        ref={rasterContainer}
+        className="map-surface raster-map"
+        aria-label="지도 위 기억 마커"
+      >
+        {rasterTiles.map((tile) => (
+          // Raster tiles are decorative; map attribution is provided by MapLibre.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={tile.key}
+            src={tile.src}
+            alt=""
+            draggable={false}
+            style={{
+              left: tile.left,
+              top: tile.top,
+              width: tile.size + 1,
+              height: tile.size + 1,
+            }}
+          />
+        ))}
+        {markerGroups.map((group) => {
+          const memory = group.memories[0];
+          const color = emotions[memory.emotion].color;
+          const selected = group.memories.some((item) => item.id === selectedMemoryId);
+          return (
+            <button
+              key={group.memories.map((item) => item.id).join(':')}
+              className={`raster-memory-marker${selected ? ' selected' : ''}`}
+              style={{ left: group.x, top: group.y, '--marker-color': color } as React.CSSProperties}
+              aria-label={group.memories.length > 1 ? `${memory.location_name}의 기억 ${group.memories.length}개` : memory.title}
+              onClick={() => onSelect(memory)}
+            >
+              {group.memories.length > 1 ? group.memories.length : ''}
+            </button>
+          );
+        })}
+        <span className="raster-attribution">© OpenStreetMap © CARTO</span>
+      </div>
       {error && (
         <output className="map-error">
           지도를 불러오지 못했어요. 연결을 확인해 주세요.

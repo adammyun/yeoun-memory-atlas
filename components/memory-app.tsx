@@ -296,31 +296,47 @@ export default function MemoryApp({
     );
   }
 
-  function locate() {
+  async function locate() {
     const showUlsanFallback = () => {
       mapRef.current?.flyTo(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
       setArea('울산광역시');
     };
 
+    const showRegionalLocation = async () => {
+      try {
+        const response = await fetch('/api/location', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Regional location unavailable');
+        const result = (await response.json()) as {
+          data: { lat: number; lng: number; label: string };
+        };
+        mapRef.current?.flyTo(result.data, 12.5);
+        setArea(result.data.label);
+        toast.info('정확한 위치 권한을 사용할 수 없어 지역 단위 위치를 보여드려요.');
+        return;
+      } catch {
+        showUlsanFallback();
+        toast.info('기본 지역인 울산 지도를 보여드려요.');
+      }
+    };
+
     if (!navigator.geolocation) {
-      showUlsanFallback();
-      toast.error('현재 위치를 사용할 수 없어 울산 지도를 보여드려요.');
+      await showRegionalLocation();
       return;
     }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        mapRef.current?.flyTo({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-        setArea('내 주변');
-      },
-      () => {
-        showUlsanFallback();
-        toast.error('위치를 확인할 수 없어 울산 지도를 보여드려요.');
-      },
-      { timeout: 10_000, maximumAge: 60_000 },
-    );
+    await new Promise<void>((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          mapRef.current?.flyTo({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+          setArea('내 주변');
+          resolve();
+        },
+        () => void showRegionalLocation().finally(resolve),
+        { timeout: 10_000, maximumAge: 60_000 },
+      );
+    });
   }
 
   function selectSearchResult(place: PlaceSearchResult) {
