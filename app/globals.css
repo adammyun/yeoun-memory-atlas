@@ -221,10 +221,16 @@ a {
   position: absolute;
   right: 4px;
   bottom: 3px;
+  z-index: 3;
   padding: 2px 4px;
   color: #536057;
   background: #fffefacc;
   font-size: 9px;
+  pointer-events: auto;
+  text-decoration: none;
+}
+.raster-attribution:hover {
+  text-decoration: underline;
 }
 .discovery {
   position: absolute;
@@ -2444,6 +2450,17 @@ a {
   }
   .map-error {
     top: calc(var(--app-header-height) + 169px);
+  }
+  .raster-attribution {
+    right: auto;
+    bottom: calc(294px + env(safe-area-inset-bottom));
+    left: 8px;
+  }
+  .atlas:has(.discovery.expanded) .raster-attribution {
+    bottom: calc(68dvh + 4px + env(safe-area-inset-bottom));
+  }
+  .my-atlas .raster-attribution {
+    bottom: calc(374px + env(safe-area-inset-bottom));
   }
   .discovery {
     padding-bottom: max(12px, env(safe-area-inset-bottom));

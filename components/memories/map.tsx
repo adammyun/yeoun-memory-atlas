@@ -16,6 +16,8 @@ import {
 } from '@/src/features/map/constants';
 
 setWorkerUrl(mapLibreWorkerUrl);
+const MAP_TILE_SOURCE_REVISION = 'osm-standard-v1';
+
 export type MapHandle = {
   flyTo: (point: Point, zoom?: number) => void;
   center: () => Point;
@@ -111,10 +113,13 @@ export default function MemoryMap({
     if (!container.current) return;
     let instance: MapType;
     try {
-      const configuredStyle = process.env.NEXT_PUBLIC_MAP_STYLE_URL;
       instance = new LibreMap({
         container: container.current,
-        style: configuredStyle || {
+        // The visible raster tiles are rendered by the compatibility layer
+        // below. Keep MapLibre on a provider-neutral background so an
+        // accidentally configured third-party style cannot add a watermark
+        // or reintroduce an API-key dependency.
+        style: {
           version: 8,
           sources: {},
           layers: [
@@ -130,10 +135,9 @@ export default function MemoryMap({
         minZoom: 3,
         maxZoom: 19,
         renderWorldCopies: false,
-        attributionControl: {
-          compact: true,
-          customAttribution: '© OpenStreetMap © CARTO',
-        },
+        // The compatibility layer owns the single visible attribution link so
+        // it stays readable above the mobile memory panel.
+        attributionControl: false,
       });
     } catch {
       queueMicrotask(() => setError(true));
@@ -399,7 +403,9 @@ export default function MemoryMap({
         const wrappedX = ((x % edge) + edge) % edge;
         tiles.push({
           key: `${z}:${x}:${y}`,
-          src: `/api/map-tiles/${z}/${wrappedX}/${y}`,
+          // Include the source revision so browsers and the edge cache cannot
+          // reuse tiles left by the previous provider at the same route.
+          src: `/api/map-tiles/${z}/${wrappedX}/${y}?source=${MAP_TILE_SOURCE_REVISION}`,
           left: view.width / 2 + (x * 256 - center.x) * scale,
           top: view.height / 2 + (y * 256 - center.y) * scale,
           size: tileSize,
@@ -468,7 +474,14 @@ export default function MemoryMap({
             </button>
           );
         })}
-        <span className="raster-attribution">© OpenStreetMap © CARTO</span>
+        <a
+          className="raster-attribution"
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          © OpenStreetMap contributors
+        </a>
       </div>
       {error && (
         <output className="map-error">
