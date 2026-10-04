@@ -146,6 +146,7 @@ export default function MemoryApp({
     null,
   );
   const [area, setArea] = useState('울산광역시');
+  const [currentLocation, setCurrentLocation] = useState<Point | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [panoramaTarget, setPanoramaTarget] =
     useState<PanoramaTarget | null>(null);
@@ -305,6 +306,7 @@ export default function MemoryApp({
 
   async function locate() {
     const showUlsanFallback = () => {
+      setCurrentLocation(null);
       mapRef.current?.flyTo(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
       setArea('울산광역시');
       toast.info('현재 위치를 사용할 수 없어 기본 지역인 울산을 보여드려요.');
@@ -317,10 +319,12 @@ export default function MemoryApp({
     await new Promise<void>((resolve) => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          mapRef.current?.flyTo({
+          const point = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-          });
+          };
+          setCurrentLocation(point);
+          mapRef.current?.flyTo(point);
           setArea('내 주변');
           resolve();
         },
@@ -389,6 +393,7 @@ export default function MemoryApp({
             ? { lng: selectedPlace.longitude, lat: selectedPlace.latitude }
             : null)
         }
+        currentLocation={currentLocation}
         highlightedIds={placeGroup?.memories.map((memory) => memory.id) ?? []}
         selectedMemoryId={placeAnchor?.id ?? null}
         onBounds={setBounds}
@@ -521,7 +526,7 @@ export default function MemoryApp({
 
       <div className={`map-caption ${selectedPlace ? 'is-hidden' : ''}`}>
         <span className="live-dot" /> {area}
-        <span>현재 화면의 공개 기억만 불러옵니다</span>
+        <span>현재 지도 주변의 공개 기억을 불러옵니다</span>
       </div>
       <div className="map-guide">
         <span className="guide-trace" />
@@ -535,16 +540,9 @@ export default function MemoryApp({
           <Minus size={18} />
         </button>
       </div>
-      <div className="map-actions">
+      <div className="map-actions public-map-actions">
         <button
-          className="icon-button"
-          aria-label="현재 위치로 이동"
-          onClick={() => void locate()}
-        >
-          <LocateFixed size={20} />
-        </button>
-        <button
-          className="primary"
+          className="primary memory-cta"
           aria-label="현재 지도 중심에 기억 남기기"
           onClick={() => {
             const center = mapRef.current?.center();
@@ -552,6 +550,13 @@ export default function MemoryApp({
           }}
         >
           <Plus size={19} /> 기억 남기기
+        </button>
+        <button
+          className="icon-button"
+          aria-label="현재 위치로 이동"
+          onClick={() => void locate()}
+        >
+          <LocateFixed size={20} />
         </button>
       </div>
 

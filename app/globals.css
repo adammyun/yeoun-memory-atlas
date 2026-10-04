@@ -177,12 +177,28 @@ a {
   overflow: hidden;
   pointer-events: none;
   background: #e9ede5;
+  contain: layout paint size;
 }
 .raster-map > img {
   position: absolute;
+  top: 0;
+  left: 0;
   max-width: none;
   user-select: none;
+  will-change: transform;
   filter: saturate(0.45) contrast(0.94) brightness(1.04);
+}
+.raster-current-location {
+  position: absolute;
+  z-index: 4;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  border: 3px solid white;
+  border-radius: 999px;
+  background: #2676d9;
+  box-shadow: 0 0 0 9px #2676d933, 0 3px 12px #173d7038;
 }
 .raster-memory-marker {
   --marker-color: #668064;
@@ -244,6 +260,7 @@ a {
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--line);
+  min-width: 0;
 }
 .search-box {
   height: 50px;
@@ -327,6 +344,7 @@ a {
   border-radius: 30px;
   font-size: 13px;
   box-shadow: 0 3px 16px #3443330a;
+  max-width: calc(100vw - 470px);
 }
 .map-caption.is-hidden {
   display: none;
@@ -492,12 +510,14 @@ a {
   font-weight: 500;
 }
 .selected-place-card small {
+  display: -webkit-box;
   overflow: hidden;
   color: var(--muted);
   font-size: 12px;
   line-height: 1.5;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
 }
 .selected-place-card > button {
   display: flex;
@@ -527,11 +547,20 @@ a {
 .map-actions {
   position: absolute;
   bottom: 43px;
-  right: 32px;
+  right: auto;
+  left: 440px;
   display: flex;
   align-items: center;
   gap: 12px;
   z-index: 12;
+}
+.primary.memory-cta {
+  background: #a9473f;
+  box-shadow: 0 7px 22px #74342d45;
+  font-weight: 700;
+}
+.primary.memory-cta:hover {
+  background: #963c35;
 }
 .primary {
   background: var(--green);
@@ -727,6 +756,7 @@ a {
 .memory-card-thumbnail {
   display: block;
   width: calc(100% + 36px);
+  max-width: none;
   height: 132px;
   margin: -19px -18px 15px;
   object-fit: cover;
@@ -734,7 +764,7 @@ a {
 }
 .card-meta {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   font-size: 11px;
   color: var(--muted);
@@ -744,6 +774,14 @@ a {
   display: flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.card-meta > span:first-child {
+  flex: 1;
+}
+.card-meta > span:last-child {
+  flex: 0 0 auto;
 }
 .card-emotion {
   font-size: 11px;
@@ -757,6 +795,7 @@ a {
   line-height: 1.65;
   margin: 13px 0 9px;
   color: #344438;
+  overflow-wrap: anywhere;
 }
 .memory-card > p {
   font-size: 13px;
@@ -1012,6 +1051,7 @@ a {
   gap: 14px !important;
   color: var(--ink);
   box-shadow: 0 -10px 70px #233c2920 !important;
+  overscroll-behavior: contain;
 }
 .filter-sheet {
   max-width: 640px;
@@ -1105,6 +1145,12 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 16px;
+}
+.sheet-heading > div,
+.place-heading > div,
+.location-selected > div {
+  min-width: 0;
 }
 .modal-heading {
   font-family: Georgia, 'Batang', serif;
@@ -1268,6 +1314,7 @@ a {
   font-size: 12px;
   color: #859079;
   margin-top: 4px;
+  overflow-wrap: anywhere;
 }
 .location-selected button {
   margin-left: auto;
@@ -1501,6 +1548,7 @@ a {
   font-weight: 400 !important;
   line-height: 1.45 !important;
   letter-spacing: -1px;
+  overflow-wrap: anywhere;
 }
 .place-description {
   color: var(--muted) !important;
@@ -2096,10 +2144,14 @@ a {
     scroll-snap-type: x mandatory;
   }
   .memory-card {
-    flex: 0 0 290px;
+    flex: 0 0 min(290px, calc(100vw - 64px));
     padding: 13px 15px;
     margin-bottom: 0;
     scroll-snap-align: start;
+  }
+  .memory-card-thumbnail {
+    width: calc(100% + 30px);
+    margin: -13px -15px 12px;
   }
   .memory-card h3 {
     font-size: 16px;
@@ -2131,10 +2183,12 @@ a {
     top: 145px;
     padding: 8px 12px;
     font-size: 12px;
+    max-width: calc(100vw - 112px);
   }
   .map-actions {
     bottom: 308px;
-    right: 18px;
+    right: auto;
+    left: 18px;
     gap: 9px;
   }
   .map-actions .primary {
@@ -2166,6 +2220,8 @@ a {
     display: none;
   }
   .story-sheet {
+    width: 100% !important;
+    max-width: none;
     padding: 10px 22px 28px !important;
     max-height: 92dvh;
     gap: 12px !important;
@@ -2191,6 +2247,9 @@ a {
   }
   .place-heading {
     gap: 12px;
+  }
+  .place-heading > div {
+    flex: 1;
   }
   .place-timeline {
     padding-left: 18px;
@@ -2446,7 +2505,7 @@ a {
     top: calc(var(--app-header-height) + 79px);
   }
   .map-zoom {
-    top: calc(var(--app-header-height) + 105px);
+    top: calc(var(--app-header-height) + 126px);
   }
   .map-error {
     top: calc(var(--app-header-height) + 169px);
@@ -2500,6 +2559,12 @@ a {
   .auth-page {
     padding-top: max(24px, env(safe-area-inset-top));
     padding-bottom: max(36px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 760px) and (max-height: 700px) {
+  .map-guide {
+    display: none;
   }
 }
 
@@ -2572,13 +2637,11 @@ a {
 }
 .panorama-header [data-slot='dialog-title'] {
   margin: 5px 0 6px;
-  overflow: hidden;
   font-family: Georgia, 'Batang', serif;
   font-size: 24px;
   font-weight: 400;
   line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .panorama-header [data-slot='dialog-description'] {
   color: var(--muted);

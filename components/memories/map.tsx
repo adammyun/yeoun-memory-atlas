@@ -24,6 +24,8 @@ export type MapHandle = {
   zoom: (delta: number) => void;
 };
 
+const VIEWPORT_QUERY_PADDING = 0.3;
+
 type ViewState = {
   center: Point;
   zoom: number;
@@ -39,12 +41,24 @@ function project(point: Point, zoom: number) {
     y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * size,
   };
 }
+
+function expandBounds(bounds: Bounds, padding = VIEWPORT_QUERY_PADDING): Bounds {
+  const longitudePadding = (bounds.east - bounds.west) * padding;
+  const latitudePadding = (bounds.north - bounds.south) * padding;
+  return {
+    west: Math.max(-180, bounds.west - longitudePadding),
+    south: Math.max(-85, bounds.south - latitudePadding),
+    east: Math.min(180, bounds.east + longitudePadding),
+    north: Math.min(85, bounds.north + latitudePadding),
+  };
+}
 export default function MemoryMap({
   memories,
   onBounds,
   onSelect,
   onCreate,
   draftPoint,
+  currentLocation,
   highlightedIds,
   selectedMemoryId,
   mapRef,
@@ -54,6 +68,7 @@ export default function MemoryMap({
   onSelect: (memory: Memory) => void;
   onCreate: (point: Point) => void;
   draftPoint: Point | null;
+  currentLocation?: Point | null;
   highlightedIds: string[];
   selectedMemoryId: string | null;
   mapRef: React.RefObject<MapHandle | null>;
@@ -155,12 +170,12 @@ export default function MemoryMap({
     };
     const report = () => {
       const b = instance.getBounds();
-      callbacks.current.onBounds({
+      callbacks.current.onBounds(expandBounds({
         west: Math.max(-180, b.getWest()),
         south: Math.max(-85, b.getSouth()),
         east: Math.min(180, b.getEast()),
         north: Math.min(85, b.getNorth()),
-      });
+      }));
     };
     const syncView = () => {
       const center = instance.getCenter();
@@ -172,13 +187,22 @@ export default function MemoryMap({
         height: rect.height,
       });
     };
-    syncView();
     const mapContainer = instance.getContainer();
+    const ownerWindow = mapContainer.ownerDocument.defaultView;
+    let viewFrame: number | null = null;
+    const scheduleViewSync = () => {
+      if (!ownerWindow || viewFrame !== null) return;
+      viewFrame = ownerWindow.requestAnimationFrame(() => {
+        viewFrame = null;
+        syncView();
+      });
+    };
+    syncView();
     const ResizeObserverClass = mapContainer.ownerDocument.defaultView?.ResizeObserver;
     const resizeObserver = ResizeObserverClass
       ? new ResizeObserverClass(() => {
           instance.resize();
-          syncView();
+          scheduleViewSync();
         })
       : null;
     resizeObserver?.observe(mapContainer);
@@ -206,6 +230,31 @@ export default function MemoryMap({
           'circle-radius': 7,
           'circle-stroke-width': 3,
           'circle-stroke-color': '#fffefa',
+        },
+      });
+      instance.addSource('current-location', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+      instance.addLayer({
+        id: 'current-location-halo',
+        type: 'circle',
+        source: 'current-location',
+        paint: {
+          'circle-color': '#2676d9',
+          'circle-radius': 17,
+          'circle-opacity': 0.2,
+        },
+      });
+      instance.addLayer({
+        id: 'current-location-point',
+        type: 'circle',
+        source: 'current-location',
+        paint: {
+          'circle-color': '#2676d9',
+          'circle-radius': 7,
+          'circle-stroke-width': 3,
+          'circle-stroke-color': '#ffffff',
         },
       });
       instance.addSource('memories', {
@@ -280,7 +329,7 @@ export default function MemoryMap({
       syncView();
       report();
     });
-    instance.on('move', syncView);
+    instance.on('move', scheduleViewSync);
     instance.on('moveend', report);
     instance.on('error', () => setError(true));
     instance.on('idle', () => setError(false));
@@ -345,6 +394,9 @@ export default function MemoryMap({
     });
     return () => {
       stop();
+      if (viewFrame !== null && ownerWindow) {
+        ownerWindow.cancelAnimationFrame(viewFrame);
+      }
       resizeObserver?.disconnect();
       mapRef.current = null;
       map.current = null;
@@ -385,6 +437,24 @@ export default function MemoryMap({
         : [],
     });
   }, [draftPoint, ready]);
+  useEffect(() => {
+    if (!ready || !map.current) return;
+    void (map.current.getSource('current-location') as GeoJSONSource).setData({
+      type: 'FeatureCollection',
+      features: currentLocation
+        ? [
+            {
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [currentLocation.lng, currentLocation.lat],
+              },
+              properties: {},
+            },
+          ]
+        : [],
+    });
+  }, [currentLocation, ready]);
 
   const rasterTiles = useMemo(() => {
     if (!view.width || !view.height) return [];
@@ -430,6 +500,18 @@ export default function MemoryMap({
     return groups;
   }, [memories, view]);
 
+  const currentLocationPosition = useMemo(() => {
+    if (!currentLocation || !view.width || !view.height) return null;
+    const center = project(view.center, view.zoom);
+    const point = project(currentLocation, view.zoom);
+    const x = view.width / 2 + point.x - center.x;
+    const y = view.height / 2 + point.y - center.y;
+    if (x < -60 || y < -60 || x > view.width + 60 || y > view.height + 60) {
+      return null;
+    }
+    return { x, y };
+  }, [currentLocation, view]);
+
   return (
     <>
       <section
@@ -451,8 +533,7 @@ export default function MemoryMap({
             alt=""
             draggable={false}
             style={{
-              left: tile.left,
-              top: tile.top,
+              transform: `translate3d(${tile.left}px, ${tile.top}px, 0)`,
               width: tile.size + 1,
               height: tile.size + 1,
             }}
@@ -474,6 +555,17 @@ export default function MemoryMap({
             </button>
           );
         })}
+        {currentLocationPosition && (
+          <span
+            className="raster-current-location"
+            role="img"
+            aria-label="현재 위치"
+            style={{
+              left: currentLocationPosition.x,
+              top: currentLocationPosition.y,
+            }}
+          />
+        )}
         <a
           className="raster-attribution"
           href="https://www.openstreetmap.org/copyright"
