@@ -5,5 +5,11 @@ import { getChatGPTUser } from './chatgpt-auth';
 export const dynamic = 'force-dynamic';
 
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  return <MemoryApp isAuthenticated={Boolean(await getChatGPTUser())} initialFilters={parseMemoryFilters(await searchParams)} />;
+  return (
+    <MemoryApp
+      isAuthenticated={Boolean(await getChatGPTUser())}
+      initialFilters={parseMemoryFilters(await searchParams)}
+      naverMapsClientId={process.env.NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID ?? ''}
+    />
+  );
 }

@@ -6,5 +6,11 @@ export const dynamic = 'force-dynamic';
 
 export default async function MyMapPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requireChatGPTUser('/my-map');
-  return <MyMemoryMap displayName={user.displayName} initialFilters={parseUserMemoryFilters(await searchParams)} />;
+  return (
+    <MyMemoryMap
+      displayName={user.displayName}
+      initialFilters={parseUserMemoryFilters(await searchParams)}
+      naverMapsClientId={process.env.NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID ?? ''}
+    />
+  );
 }

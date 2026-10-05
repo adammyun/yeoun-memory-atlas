@@ -120,9 +120,11 @@ function MemoryCard({
 export default function MemoryApp({
   isAuthenticated,
   initialFilters,
+  naverMapsClientId,
 }: {
   isAuthenticated: boolean;
   initialFilters: MemoryFilters;
+  naverMapsClientId: string;
 }) {
   const router = useRouter();
   const mapRef = useRef<MapHandle | null>(null);
@@ -628,6 +630,7 @@ export default function MemoryApp({
 
       {panoramaTarget && (
         <PanoramaViewer
+          clientId={naverMapsClientId}
           placeName={panoramaTarget.placeName}
           point={panoramaTarget.point}
           onClose={() => setPanoramaTarget(null)}

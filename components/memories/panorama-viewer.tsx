@@ -22,10 +22,12 @@ import {
 type ViewerState = 'loading' | 'ready' | 'unavailable' | 'missing-config' | 'error';
 
 export default function PanoramaViewer({
+  clientId,
   placeName,
   point,
   onClose,
 }: {
+  clientId: string;
   placeName: string;
   point: Point;
   onClose: () => void;
@@ -46,9 +48,7 @@ export default function PanoramaViewer({
 
     const initialize = async () => {
       try {
-        maps = await loadNaverMapsPanorama(
-          process.env.NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID,
-        );
+        maps = await loadNaverMapsPanorama(clientId);
         if (cancelled) return;
 
         await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -121,7 +121,7 @@ export default function PanoramaViewer({
       }
       container.replaceChildren();
     };
-  }, [attempt, container, point.lat, point.lng]);
+  }, [attempt, clientId, container, point.lat, point.lng]);
 
   const retry = () => {
     setState('loading');

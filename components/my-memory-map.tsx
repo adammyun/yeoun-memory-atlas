@@ -97,9 +97,11 @@ function MyMemoryCard({
 export default function MyMemoryMap({
   displayName,
   initialFilters,
+  naverMapsClientId,
 }: {
   displayName: string;
   initialFilters: MyFilters;
+  naverMapsClientId: string;
 }) {
   const router = useRouter();
   const mapRef = useRef<MapHandle | null>(null);
@@ -464,6 +466,7 @@ export default function MyMemoryMap({
       )}
       {panoramaTarget && (
         <PanoramaViewer
+          clientId={naverMapsClientId}
           placeName={panoramaTarget.placeName}
           point={panoramaTarget.point}
           onClose={() => setPanoramaTarget(null)}
