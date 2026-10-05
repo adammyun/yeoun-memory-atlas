@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @next/next/no-html-link-for-pages -- The vinext preview needs full-document navigation from the developer helper page. */
+
 import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
@@ -40,10 +42,6 @@ export default function DevTools({
   const [resetMessage, setResetMessage] = useState('');
   const [geolocationAvailable, setGeolocationAvailable] = useState(false);
 
-  function navigate(path: string) {
-    window.location.assign(new URL(path, window.location.origin));
-  }
-
   useEffect(() => {
     // Browser-only capability and local completion state become available after hydration.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -53,7 +51,6 @@ export default function DevTools({
 
   function startTutorial() {
     resetOnboarding(window.localStorage);
-    navigate('/?tutorial=1');
   }
 
   function resetTutorial() {
@@ -74,13 +71,9 @@ export default function DevTools({
               관리자 권한이나 데이터 접근 권한을 제공하지 않습니다.
             </p>
           </div>
-          <button
-            type="button"
-            className="dev-back-link"
-            onClick={() => navigate('/')}
-          >
+          <a href="/" className="dev-back-link">
             <ArrowLeft size={17} /> 지도로 돌아가기
-          </button>
+          </a>
         </header>
 
         <section className="dev-card dev-tour-card">
@@ -102,9 +95,9 @@ export default function DevTools({
             </strong>
           </div>
           <div className="dev-actions">
-            <button type="button" className="dev-primary" onClick={startTutorial}>
+            <a href="/?tutorial=1" className="dev-primary" onClick={startTutorial}>
               <BookOpen size={17} /> 튜토리얼 시작
-            </button>
+            </a>
             <button type="button" className="dev-secondary" onClick={resetTutorial}>
               <RotateCcw size={17} /> 완료 상태 초기화
             </button>
@@ -122,10 +115,10 @@ export default function DevTools({
               </div>
             </div>
             <nav className="dev-links" aria-label="시연 화면 바로가기">
-              <button type="button" onClick={() => navigate('/')}><Map size={17} /> 공개 지도</button>
-              <button type="button" onClick={() => navigate('/my-map')}><UserRound size={17} /> 내 기억 지도</button>
-              <button type="button" onClick={() => navigate('/login')}><ExternalLink size={17} /> 로그인</button>
-              <button type="button" onClick={() => navigate('/signup')}><ExternalLink size={17} /> 회원가입 안내</button>
+              <a href="/"><Map size={17} /> 공개 지도</a>
+              <a href="/my-map"><UserRound size={17} /> 내 기억 지도</a>
+              <a href="/login"><ExternalLink size={17} /> 로그인</a>
+              <a href="/signup"><ExternalLink size={17} /> 회원가입 안내</a>
             </nav>
           </section>
 

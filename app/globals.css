@@ -899,6 +899,7 @@ a {
   gap: 9px;
 }
 .dev-actions button,
+.dev-actions a,
 .dev-links a,
 .dev-links button {
   display: inline-flex;
