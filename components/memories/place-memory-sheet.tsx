@@ -96,12 +96,18 @@ export default function PlaceMemorySheet({
         <span className="sheet-grip" />
         <div
           className="story-sheet-scroll"
+          tabIndex={0}
+          aria-label="장소의 기억 목록"
           onScroll={(event) => {
             const element = event.currentTarget;
             const available = element.scrollHeight - element.clientHeight;
             element.style.setProperty(
               '--sheet-scroll-progress',
-              String(available > 0 ? element.scrollTop / available : 0),
+              String(
+                available > 0
+                  ? Math.min(1, Math.max(0, element.scrollTop / available))
+                  : 0,
+              ),
             );
           }}
         >

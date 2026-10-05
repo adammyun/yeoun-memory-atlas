@@ -71,12 +71,18 @@ export default function MemoryDetail({
         <span className="sheet-grip" />
         <div
           className="story-sheet-scroll"
+          tabIndex={0}
+          aria-label="기억 상세 내용"
           onScroll={(event) => {
             const element = event.currentTarget;
             const available = element.scrollHeight - element.clientHeight;
             element.style.setProperty(
               '--sheet-scroll-progress',
-              String(available > 0 ? element.scrollTop / available : 0),
+              String(
+                available > 0
+                  ? Math.min(1, Math.max(0, element.scrollTop / available))
+                  : 0,
+              ),
             );
           }}
         >

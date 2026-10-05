@@ -3194,6 +3194,11 @@ a {
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
 }
+.story-sheet-scroll:focus-visible {
+  outline: 2px solid #78906f80;
+  outline-offset: -2px;
+  border-radius: 12px;
+}
 .story-scroll-progress {
   position: sticky;
   top: 0;
