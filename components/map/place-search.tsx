@@ -55,7 +55,7 @@ export default function PlaceSearch({
   }
 
   return (
-    <section className="place-search-control" aria-label="장소 검색">
+    <section className="place-search-control" aria-label="장소 검색" data-tour="search">
       <div className="place-search-input">
         {searching ? (
           <LoaderCircle className="spin" size={19} aria-hidden="true" />

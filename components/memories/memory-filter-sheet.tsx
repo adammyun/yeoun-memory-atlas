@@ -37,6 +37,7 @@ export default function MemoryFilterSheet({
       <button
         type="button"
         className={`map-filter-button ${activeCount ? 'active' : ''}`}
+        data-tour="filter"
         onClick={() => setOpen(true)}
         aria-label={`기억 필터 열기${activeCount ? `, ${activeCount}개 적용 중` : ''}`}
       >

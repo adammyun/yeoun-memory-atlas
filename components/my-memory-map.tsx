@@ -15,6 +15,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
+import DeveloperHotspot from './dev/developer-hotspot';
 import MemoryDetail from './memories/memory-detail';
 import MemoryForm from './memories/memory-form';
 import MemoryMap, { type MapHandle } from './memories/map';
@@ -227,11 +228,12 @@ export default function MyMemoryMap({
       </a>
       <Toaster position="top-center" richColors />
       <header className="topbar">
-        <Link className="brand" href="/">
+        <Link className="brand" href="/" data-tour="brand">
           <span className="brand-mark">◌</span>
           <b>여운</b>
           <span className="brand-caption">{displayName}의 기억 지도</span>
         </Link>
+        <DeveloperHotspot />
         <nav className="app-nav" aria-label="주요 메뉴">
           <Link href="/">지도</Link>
           <Link className="active" href="/my-map" aria-current="page">

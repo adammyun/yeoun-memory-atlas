@@ -16,6 +16,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
+import DeveloperHotspot from './dev/developer-hotspot';
 import MemoryDetail from './memories/memory-detail';
 import MemoryFilterSheet from './memories/memory-filter-sheet';
 import MemoryForm from './memories/memory-form';
@@ -23,6 +24,7 @@ import MemoryMap, { type MapHandle } from './memories/map';
 import PanoramaViewer from './memories/panorama-viewer';
 import PlaceMemorySheet from './memories/place-memory-sheet';
 import PlaceSearch from './map/place-search';
+import OnboardingTutorial from './onboarding/tutorial';
 import {
   emotions,
   formatDate,
@@ -360,18 +362,19 @@ export default function MemoryApp({
       </a>
       <Toaster position="top-center" richColors />
       <header className="topbar">
-        <Link className="brand" href="/" aria-label="여운 홈">
+        <Link className="brand" href="/" aria-label="여운 홈" data-tour="brand">
           <span className="brand-mark">◌</span>
           <b>여운</b>
           <span className="brand-caption">기억이 머무는 지도</span>
         </Link>
-        <nav className="app-nav" aria-label="주요 메뉴">
+        <DeveloperHotspot />
+        <nav className="app-nav" aria-label="주요 메뉴" data-tour="account-navigation">
           <Link className="active" href="/" aria-current="page">
             지도
           </Link>
           {isAuthenticated ? (
             <>
-              <Link href="/my-map">
+              <Link href="/my-map" data-tour="my-memories">
                 <UserRound size={15} /> 내 기억
               </Link>
               <button onClick={() => void signOut()}>
@@ -543,6 +546,7 @@ export default function MemoryApp({
       <div className="map-actions public-map-actions">
         <button
           className="primary memory-cta"
+          data-tour="create"
           aria-label="현재 지도 중심에 기억 남기기"
           onClick={() => {
             const center = mapRef.current?.center();
@@ -553,6 +557,7 @@ export default function MemoryApp({
         </button>
         <button
           className="icon-button"
+          data-tour="locate"
           aria-label="현재 위치로 이동"
           onClick={() => void locate()}
         >
@@ -628,6 +633,7 @@ export default function MemoryApp({
           onClose={() => setPanoramaTarget(null)}
         />
       )}
+      <OnboardingTutorial />
     </main>
   );
 }
