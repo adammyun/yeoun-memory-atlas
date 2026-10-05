@@ -230,11 +230,17 @@ export default function MyMemoryMap({
       </a>
       <Toaster position="top-center" richColors />
       <header className="topbar">
-        <Link className="brand" href="/" data-tour="brand">
+        <button
+          type="button"
+          className="brand"
+          aria-label="여운 화면 새로고침"
+          data-tour="brand"
+          onClick={() => window.location.reload()}
+        >
           <span className="brand-mark">◌</span>
           <b>여운</b>
           <span className="brand-caption">{displayName}의 기억 지도</span>
-        </Link>
+        </button>
         <DeveloperHotspot />
         <nav className="app-nav" aria-label="주요 메뉴">
           <Link href="/">지도</Link>

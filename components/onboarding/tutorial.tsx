@@ -267,7 +267,7 @@ export default function OnboardingTutorial() {
         <div className="tour-dim tour-dim-full" />
       )}
 
-      <div className="tour-panel" ref={panelRef} tabIndex={-1}>
+      <div className="tour-panel" ref={panelRef} tabIndex={-1} key={stepIndex}>
         <div className="tour-panel-heading">
           <span>{step.eyebrow}</span>
           <button type="button" onClick={closeTour} aria-label="안내 건너뛰기">

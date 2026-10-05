@@ -1,7 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
@@ -38,10 +36,13 @@ export default function DevTools({
   databaseConfigured,
   panoramaConfigured,
 }: DevToolsProps) {
-  const router = useRouter();
   const [tutorialComplete, setTutorialComplete] = useState<boolean | null>(null);
   const [resetMessage, setResetMessage] = useState('');
   const [geolocationAvailable, setGeolocationAvailable] = useState(false);
+
+  function navigate(path: string) {
+    window.location.assign(new URL(path, window.location.origin));
+  }
 
   useEffect(() => {
     // Browser-only capability and local completion state become available after hydration.
@@ -52,7 +53,7 @@ export default function DevTools({
 
   function startTutorial() {
     resetOnboarding(window.localStorage);
-    router.push('/?tutorial=1');
+    navigate('/?tutorial=1');
   }
 
   function resetTutorial() {
@@ -73,9 +74,13 @@ export default function DevTools({
               관리자 권한이나 데이터 접근 권한을 제공하지 않습니다.
             </p>
           </div>
-          <Link href="/" className="dev-back-link">
+          <button
+            type="button"
+            className="dev-back-link"
+            onClick={() => navigate('/')}
+          >
             <ArrowLeft size={17} /> 지도로 돌아가기
-          </Link>
+          </button>
         </header>
 
         <section className="dev-card dev-tour-card">
@@ -117,10 +122,10 @@ export default function DevTools({
               </div>
             </div>
             <nav className="dev-links" aria-label="시연 화면 바로가기">
-              <Link href="/"><Map size={17} /> 공개 지도</Link>
-              <Link href="/my-map"><UserRound size={17} /> 내 기억 지도</Link>
-              <Link href="/login"><ExternalLink size={17} /> 로그인</Link>
-              <Link href="/signup"><ExternalLink size={17} /> 회원가입 안내</Link>
+              <button type="button" onClick={() => navigate('/')}><Map size={17} /> 공개 지도</button>
+              <button type="button" onClick={() => navigate('/my-map')}><UserRound size={17} /> 내 기억 지도</button>
+              <button type="button" onClick={() => navigate('/login')}><ExternalLink size={17} /> 로그인</button>
+              <button type="button" onClick={() => navigate('/signup')}><ExternalLink size={17} /> 회원가입 안내</button>
             </nav>
           </section>
 

@@ -112,6 +112,9 @@ a {
   display: flex;
   align-items: center;
   gap: 11px;
+  color: inherit;
+  background: transparent;
+  text-align: left;
 }
 .brand b {
   font-family: Georgia, 'Batang', serif;
@@ -896,7 +899,8 @@ a {
   gap: 9px;
 }
 .dev-actions button,
-.dev-links a {
+.dev-links a,
+.dev-links button {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
@@ -926,7 +930,8 @@ a {
   gap: 8px;
   margin-top: 19px;
 }
-.dev-links a {
+.dev-links a,
+.dev-links button {
   justify-content: flex-start;
   border: 1px solid var(--line);
   background: var(--surface-muted);
@@ -3157,5 +3162,206 @@ a {
   .panorama-header [data-slot='dialog-description'] {
     max-width: 290px;
     font-size: 11px;
+  }
+}
+
+/* Interaction and reading-flow refinements. */
+@media (min-width: 761px) {
+  .map-zoom {
+    top: 165px;
+    right: 24px;
+  }
+}
+
+.detail-sheet,
+.place-sheet {
+  overflow: hidden;
+}
+.story-sheet-scroll {
+  --sheet-scroll-progress: 0;
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 5px;
+  margin-right: -5px;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+.story-scroll-progress {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  width: 100%;
+  height: 3px;
+  flex: 0 0 3px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #e8ece4;
+}
+.story-scroll-progress > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #78906f, #b56a58);
+  transform: scaleX(var(--sheet-scroll-progress));
+  transform-origin: left center;
+  transition: transform 80ms linear;
+}
+.detail-top {
+  position: sticky;
+  top: 3px;
+  z-index: 5;
+  padding: 8px 0 10px;
+  background: linear-gradient(var(--paper) 72%, #fffefa00);
+}
+.detail-top-leading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+.detail-back-button {
+  display: inline-flex;
+  min-width: 72px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: var(--green);
+  background: var(--surface-accent);
+  transition: background 160ms ease, transform 160ms ease;
+}
+.detail-back-button:hover {
+  background: #e2eadc;
+  transform: translateX(-2px);
+}
+.story-content-enter {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: story-content-enter 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.story-content-enter .detail-location {
+  margin-top: 2px;
+}
+.memory-detail-gallery {
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
+}
+.memory-detail-gallery img {
+  transition: transform 220ms ease, filter 220ms ease;
+}
+.memory-detail-gallery img:hover {
+  filter: saturate(1.04);
+  transform: scale(1.012);
+}
+.place-memory {
+  opacity: 0;
+  animation: memory-card-enter 320ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+.place-memory > button,
+.location-card,
+.panorama-entry {
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+.place-memory > button:hover,
+.location-card:hover,
+.panorama-entry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px #31423914;
+}
+.place-memory > button:active,
+.location-card:active,
+.panorama-entry:active,
+.tour-actions button:active {
+  transform: scale(0.98);
+}
+.tour-highlight,
+.tour-dim {
+  transition:
+    top 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    left 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    width 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 180ms ease;
+}
+.tour-panel {
+  animation: tour-step-enter 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes story-content-enter {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes memory-card-enter {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes tour-step-enter {
+  from {
+    opacity: 0.45;
+    scale: 0.985;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@media (max-width: 420px) {
+  .detail-top-leading {
+    gap: 5px;
+  }
+  .detail-back-button {
+    min-width: 62px;
+    padding-inline: 9px;
+  }
+  .emotion-pill {
+    padding-inline: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-content-enter,
+  .place-memory,
+  .tour-panel {
+    animation: none;
+    opacity: 1;
+  }
+  .tour-highlight,
+  .tour-dim,
+  .memory-detail-gallery img,
+  .place-memory > button,
+  .location-card,
+  .panorama-entry,
+  .detail-back-button,
+  .story-scroll-progress > span {
+    transition: none;
   }
 }

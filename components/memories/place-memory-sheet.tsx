@@ -94,6 +94,18 @@ export default function PlaceMemorySheet({
         showCloseButton={false}
       >
         <span className="sheet-grip" />
+        <div
+          className="story-sheet-scroll"
+          onScroll={(event) => {
+            const element = event.currentTarget;
+            const available = element.scrollHeight - element.clientHeight;
+            element.style.setProperty(
+              '--sheet-scroll-progress',
+              String(available > 0 ? element.scrollTop / available : 0),
+            );
+          }}
+        >
+        <div className="story-scroll-progress" aria-hidden="true"><span /></div>
         <div className="place-heading">
           <div>
             <span className="eyebrow">SAME PLACE, DIFFERENT MEMORIES</span>
@@ -154,13 +166,14 @@ export default function PlaceMemorySheet({
         )}
 
         <div className="place-timeline" aria-busy={loading}>
-          {memories.map((memory) => {
+          {memories.map((memory, index) => {
             const selected = memory.id === anchor.id;
             const emotion = emotions[memory.emotion];
             return (
               <article
                 key={memory.id}
                 className={`place-memory ${selected ? 'selected' : ''}`}
+                style={{ animationDelay: `${Math.min(index * 45, 225)}ms` }}
               >
                 <span
                   className="timeline-dot"
@@ -222,6 +235,7 @@ export default function PlaceMemorySheet({
             <small>선택한 marker를 중심으로 돌아갑니다</small>
           </span>
         </button>
+        </div>
       </SheetContent>
     </Sheet>
   );

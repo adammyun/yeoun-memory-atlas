@@ -251,8 +251,6 @@ export default function MemoryApp({
     try {
       const detail = await fetchPublicMemory(id, controller.signal);
       if (!controller.signal.aborted) {
-        setPlaceAnchor(null);
-        setPlaceGroup(null);
         setSelected(detail);
       }
     } catch {
@@ -364,11 +362,17 @@ export default function MemoryApp({
       </a>
       <Toaster position="top-center" richColors />
       <header className="topbar">
-        <Link className="brand" href="/" aria-label="여운 홈" data-tour="brand">
+        <button
+          type="button"
+          className="brand"
+          aria-label="여운 화면 새로고침"
+          data-tour="brand"
+          onClick={() => window.location.reload()}
+        >
           <span className="brand-mark">◌</span>
           <b>여운</b>
           <span className="brand-caption">기억이 머무는 지도</span>
-        </Link>
+        </button>
         <DeveloperHotspot />
         <nav className="app-nav" aria-label="주요 메뉴" data-tour="account-navigation">
           <Link className="active" href="/" aria-current="page">
@@ -584,15 +588,22 @@ export default function MemoryApp({
           onOpenPanorama={() =>
             setPanoramaTarget(memoryPanoramaTarget(selected))
           }
-          onClose={() => setSelected(null)}
+          onBack={placeAnchor ? () => setSelected(null) : undefined}
+          onClose={() => {
+            setSelected(null);
+            setPlaceAnchor(null);
+            setPlaceGroup(null);
+          }}
           onLocate={() => {
             mapRef.current?.flyTo(selected);
             setSelected(null);
+            setPlaceAnchor(null);
+            setPlaceGroup(null);
           }}
         />
       )}
 
-      {placeAnchor && (
+      {placeAnchor && !selected && (
         <PlaceMemorySheet
           anchor={placeAnchor}
           group={placeGroup}
