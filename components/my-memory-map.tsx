@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpRight,
   Globe2,
+  Layers3,
   Leaf,
   LoaderCircle,
   LockKeyhole,
@@ -117,6 +118,7 @@ export default function MyMemoryMap({
   const [expanded, setExpanded] = useState(false);
   const [panoramaTarget, setPanoramaTarget] =
     useState<PanoramaTarget | null>(null);
+  const [mapMode, setMapMode] = useState<'calm' | 'detail'>('calm');
 
   // oxlint-disable react/react-compiler -- Loading state is reset for each server-filtered request.
   useEffect(() => {
@@ -255,6 +257,7 @@ export default function MyMemoryMap({
 
       <MemoryMap
         memories={memories}
+        mode={mapMode}
         mapRef={mapRef}
         draftPoint={createPoint}
         highlightedIds={[]}
@@ -263,6 +266,24 @@ export default function MyMemoryMap({
         onSelect={selectMemory}
         onCreate={setCreatePoint}
       />
+
+      <div className="map-style-toggle" role="group" aria-label="지도 표현 선택">
+        <span aria-hidden="true"><Layers3 size={15} /></span>
+        <button
+          type="button"
+          aria-pressed={mapMode === 'calm'}
+          onClick={() => setMapMode('calm')}
+        >
+          간결
+        </button>
+        <button
+          type="button"
+          aria-pressed={mapMode === 'detail'}
+          onClick={() => setMapMode('detail')}
+        >
+          상세
+        </button>
+      </div>
 
       <aside
         id="my-memory-list"

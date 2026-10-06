@@ -182,6 +182,9 @@ a {
   background: #e9ede5;
   contain: layout paint size;
 }
+.raster-map.vector-visible {
+  background: transparent;
+}
 .raster-map > img {
   position: absolute;
   top: 0;
@@ -190,6 +193,14 @@ a {
   user-select: none;
   will-change: transform;
   filter: saturate(0.45) contrast(0.94) brightness(1.04);
+}
+.raster-map.calm-mode > img {
+  opacity: 0.72;
+  filter: saturate(0.18) contrast(0.84) brightness(1.12);
+}
+.raster-map.detail-mode > img {
+  opacity: 1;
+  filter: saturate(0.68) contrast(0.98) brightness(1.02);
 }
 .raster-current-location {
   position: absolute;
@@ -202,6 +213,37 @@ a {
   border-radius: 999px;
   background: #2676d9;
   box-shadow: 0 0 0 9px #2676d933, 0 3px 12px #173d7038;
+}
+.raster-draft-location {
+  position: absolute;
+  z-index: 5;
+  width: 27px;
+  height: 27px;
+  transform: translate(-50%, -100%) rotate(45deg);
+  transform-origin: center bottom;
+  pointer-events: none;
+  border: 3px solid #fffefa;
+  border-radius: 50% 50% 50% 4px;
+  background: #a9473f;
+  box-shadow: 0 0 0 8px #a9473f24, 0 5px 14px #4a27233d;
+  animation: location-marker-drop 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.raster-draft-location::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: #fffefa;
+}
+@keyframes location-marker-drop {
+  from {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
 }
 .raster-memory-marker {
   --marker-color: #668064;
@@ -248,7 +290,10 @@ a {
   pointer-events: auto;
   text-decoration: none;
 }
-.raster-attribution:hover {
+.raster-attribution a {
+  color: inherit;
+}
+.raster-attribution a:hover {
   text-decoration: underline;
 }
 .discovery {
@@ -1065,6 +1110,166 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .tour-highlight {
     animation: none;
+  }
+}
+
+/* Two-step location picking for the primary memory CTA. */
+.location-picker-card {
+  position: absolute;
+  top: 173px;
+  left: 440px;
+  z-index: 14;
+  width: min(410px, calc(100vw - 530px));
+  padding: 15px;
+  border: 1px solid #d9e1d5;
+  border-radius: 18px;
+  background: #fffefaf5;
+  box-shadow: 0 12px 34px #263a2e2b;
+  backdrop-filter: blur(12px);
+  animation: story-content-enter 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.location-picker-copy {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.location-picker-copy > span:last-child,
+.location-picker-copy strong,
+.location-picker-copy small {
+  display: block;
+  min-width: 0;
+}
+.location-picker-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--green);
+  background: var(--surface-accent);
+}
+.location-picker-copy strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+.location-picker-copy small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.location-picker-actions {
+  display: grid;
+  grid-template-columns: 0.75fr 1.25fr;
+  gap: 8px;
+  margin-top: 13px;
+}
+.location-picker-actions button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 999px;
+  color: var(--green);
+  background: var(--surface-accent);
+  font-size: 13px;
+  font-weight: 650;
+  transition: transform 150ms ease, background 150ms ease;
+}
+.location-picker-actions button.confirm {
+  color: white;
+  background: var(--green);
+}
+.location-picker-actions button:hover {
+  transform: translateY(-1px);
+}
+.location-picker-actions button:active {
+  transform: scale(0.98);
+}
+.primary.memory-cta[aria-pressed='true'] {
+  background: #7f3731;
+}
+
+@media (max-width: 760px) {
+  .location-picker-card {
+    top: calc(var(--app-header-height) + 73px);
+    right: 90px;
+    left: 16px;
+    width: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .location-picker-card {
+    padding: 13px;
+  }
+  .location-picker-actions {
+    margin-top: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .location-picker-card,
+  .raster-draft-location {
+    animation: none;
+  }
+  .location-picker-actions button {
+    transition: none;
+  }
+}
+
+/* Calm map is the default; detailed OSM tiles remain an explicit option. */
+.map-style-toggle {
+  position: absolute;
+  top: 272px;
+  right: 24px;
+  z-index: 13;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid #d9e0d5;
+  border-radius: 999px;
+  color: var(--muted);
+  background: #fffefae8;
+  box-shadow: 0 5px 18px #2f47391a;
+  backdrop-filter: blur(9px);
+}
+.map-style-toggle > span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+}
+.map-style-toggle button {
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  transition: color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+.map-style-toggle button[aria-pressed='true'] {
+  color: var(--green);
+  background: var(--surface-accent);
+}
+.map-style-toggle button:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 760px) {
+  .map-style-toggle {
+    top: calc(var(--app-header-height) + 226px);
+    right: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-style-toggle button {
+    transition: none;
   }
 }
 .main-tabs-list {

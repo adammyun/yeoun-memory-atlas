@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpRight,
+  Check,
   Leaf,
+  Layers3,
   LoaderCircle,
   LogOut,
   LocateFixed,
@@ -146,6 +148,7 @@ export default function MemoryApp({
   const [openingMemoryId, setOpeningMemoryId] = useState<string | null>(null);
   const [draftLocation, setDraftLocation] =
     useState<MemoryLocationDraft | null>(null);
+  const [pendingLocation, setPendingLocation] = useState<Point | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<PlaceSearchResult | null>(
     null,
   );
@@ -154,6 +157,7 @@ export default function MemoryApp({
   const [expanded, setExpanded] = useState(false);
   const [panoramaTarget, setPanoramaTarget] =
     useState<PanoramaTarget | null>(null);
+  const [mapMode, setMapMode] = useState<'calm' | 'detail'>('calm');
 
   // oxlint-disable react/react-compiler -- Loading state is reset when a new viewport request begins.
   useEffect(() => {
@@ -225,6 +229,7 @@ export default function MemoryApp({
     setSelected(null);
     setSelectedPlace(null);
     setDraftLocation(null);
+    setPendingLocation(null);
     setPlaceAnchor(memory);
     setPlaceGroup(null);
     setPlaceError(false);
@@ -274,9 +279,50 @@ export default function MemoryApp({
       setSelectedPlace(null);
       setPlaceAnchor(null);
       setPlaceGroup(null);
+      setPendingLocation(null);
       setDraftLocation({ point, locationName });
     },
     [isAuthenticated, router],
+  );
+
+  const beginLocationSelection = useCallback(() => {
+    if (!isAuthenticated) {
+      router.push('/login?next=/');
+      return;
+    }
+    detailRequest.current?.abort();
+    nearbyRequest.current?.abort();
+    setSelected(null);
+    setSelectedPlace(null);
+    setPlaceAnchor(null);
+    setPlaceGroup(null);
+    setDraftLocation(null);
+    setExpanded(false);
+    setPendingLocation(mapRef.current?.center() ?? DEFAULT_MAP_CENTER);
+  }, [isAuthenticated, router]);
+
+  const selectMapLocation = useCallback(
+    (point: Point) => {
+      if (pendingLocation) {
+        setSelectedPlace(null);
+        setPendingLocation(point);
+        return;
+      }
+      startCreate(point);
+    },
+    [pendingLocation, startCreate],
+  );
+
+  const selectMapMemory = useCallback(
+    (memory: Memory) => {
+      if (pendingLocation) {
+        setSelectedPlace(null);
+        setPendingLocation({ lng: memory.lng, lat: memory.lat });
+        return;
+      }
+      openPlace(memory);
+    },
+    [openPlace, pendingLocation],
   );
 
   async function signOut() {
@@ -346,6 +392,7 @@ export default function MemoryApp({
     setPlaceAnchor(null);
     setPlaceGroup(null);
     setDraftLocation(null);
+    setPendingLocation(null);
     setSelectedPlace(place);
     setArea(place.name);
     setExpanded(false);
@@ -395,9 +442,11 @@ export default function MemoryApp({
 
       <MemoryMap
         memories={memories}
+        mode={mapMode}
         mapRef={mapRef}
         draftPoint={
           draftLocation?.point ??
+          pendingLocation ??
           (selectedPlace
             ? { lng: selectedPlace.longitude, lat: selectedPlace.latitude }
             : null)
@@ -406,12 +455,29 @@ export default function MemoryApp({
         highlightedIds={placeGroup?.memories.map((memory) => memory.id) ?? []}
         selectedMemoryId={placeAnchor?.id ?? null}
         onBounds={setBounds}
-        onSelect={openPlace}
-        onCreate={startCreate}
+        onSelect={selectMapMemory}
+        onCreate={selectMapLocation}
       />
 
       <PlaceSearch onSelect={selectSearchResult} />
       <MemoryFilterSheet filters={filters} onChange={changeFilters} />
+      <div className="map-style-toggle" role="group" aria-label="지도 표현 선택">
+        <span aria-hidden="true"><Layers3 size={15} /></span>
+        <button
+          type="button"
+          aria-pressed={mapMode === 'calm'}
+          onClick={() => setMapMode('calm')}
+        >
+          간결
+        </button>
+        <button
+          type="button"
+          aria-pressed={mapMode === 'detail'}
+          onClick={() => setMapMode('detail')}
+        >
+          상세
+        </button>
+      </div>
 
       {selectedPlace && !draftLocation && (
         <section className="selected-place-card" aria-live="polite">
@@ -429,6 +495,34 @@ export default function MemoryApp({
           >
             <Plus size={17} /> 이곳에 기억 남기기
           </button>
+        </section>
+      )}
+
+      {pendingLocation && !draftLocation && (
+        <section
+          className="location-picker-card"
+          aria-label="기억을 남길 장소 선택"
+          aria-live="polite"
+        >
+          <div className="location-picker-copy">
+            <span className="location-picker-icon"><MapPin size={19} /></span>
+            <span>
+              <strong>기억이 머문 장소를 골라주세요</strong>
+              <small>지도 지점이나 기억 마커를 누르면 선택 마커가 이동해요.</small>
+            </span>
+          </div>
+          <div className="location-picker-actions">
+            <button type="button" onClick={() => setPendingLocation(null)}>
+              취소
+            </button>
+            <button
+              type="button"
+              className="confirm"
+              onClick={() => startCreate(pendingLocation)}
+            >
+              <Check size={16} /> 이 위치 선택
+            </button>
+          </div>
         </section>
       )}
 
@@ -537,10 +631,12 @@ export default function MemoryApp({
         <span className="live-dot" /> {area}
         <span>현재 지도 주변의 공개 기억을 불러옵니다</span>
       </div>
-      <div className="map-guide">
-        <span className="guide-trace" />
-        지도를 클릭하거나 길게 눌러 위치를 선택하세요
-      </div>
+      {!pendingLocation && (
+        <div className="map-guide">
+          <span className="guide-trace" />
+          지도를 클릭하거나 길게 눌러 위치를 선택하세요
+        </div>
+      )}
       <div className="map-zoom">
         <button aria-label="지도 확대" onClick={() => mapRef.current?.zoom(1)}>
           <Plus size={18} />
@@ -553,13 +649,11 @@ export default function MemoryApp({
         <button
           className="primary memory-cta"
           data-tour="create"
-          aria-label="현재 지도 중심에 기억 남기기"
-          onClick={() => {
-            const center = mapRef.current?.center();
-            if (center) startCreate(center);
-          }}
+          aria-label="기억을 남길 장소 선택하기"
+          aria-pressed={Boolean(pendingLocation)}
+          onClick={beginLocationSelection}
         >
-          <Plus size={19} /> 기억 남기기
+          <Plus size={19} /> {pendingLocation ? '장소 선택 중' : '기억 남기기'}
         </button>
         <button
           className="icon-button"

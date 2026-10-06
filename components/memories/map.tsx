@@ -17,6 +17,7 @@ import {
 
 setWorkerUrl(mapLibreWorkerUrl);
 const MAP_TILE_SOURCE_REVISION = 'osm-standard-v1';
+const CALM_MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 
 export type MapHandle = {
   flyTo: (point: Point, zoom?: number) => void;
@@ -54,6 +55,7 @@ function expandBounds(bounds: Bounds, padding = VIEWPORT_QUERY_PADDING): Bounds 
 }
 export default function MemoryMap({
   memories,
+  mode,
   onBounds,
   onSelect,
   onCreate,
@@ -64,6 +66,7 @@ export default function MemoryMap({
   mapRef,
 }: {
   memories: Memory[];
+  mode: 'calm' | 'detail';
   onBounds: (bounds: Bounds) => void;
   onSelect: (memory: Memory) => void;
   onCreate: (point: Point) => void;
@@ -130,21 +133,12 @@ export default function MemoryMap({
     try {
       instance = new LibreMap({
         container: container.current,
-        // The visible raster tiles are rendered by the compatibility layer
-        // below. Keep MapLibre on a provider-neutral background so an
-        // accidentally configured third-party style cannot add a watermark
-        // or reintroduce an API-key dependency.
-        style: {
-          version: 8,
-          sources: {},
-          layers: [
-            {
-              id: 'base-background',
-              type: 'background',
-              paint: { 'background-color': '#e9ede5' },
-            },
-          ],
-        },
+        // OpenFreeMap Positron is the quiet default style. It is based on
+        // OpenStreetMap, requires no API key, and keeps parks, major roads and
+        // administrative labels legible without the density of the detailed
+        // OSM raster layer. The compatibility layer below remains available
+        // as the detailed option and as the WebGL/network fallback.
+        style: CALM_MAP_STYLE_URL,
         center: [DEFAULT_MAP_CENTER.lng, DEFAULT_MAP_CENTER.lat],
         zoom: DEFAULT_MAP_ZOOM,
         minZoom: 3,
@@ -484,6 +478,7 @@ export default function MemoryMap({
     }
     return tiles;
   }, [view]);
+  const showRasterTiles = mode === 'detail' || error || !ready;
 
   const markerGroups = useMemo(() => {
     const center = project(view.center, view.zoom);
@@ -512,6 +507,18 @@ export default function MemoryMap({
     return { x, y };
   }, [currentLocation, view]);
 
+  const draftLocationPosition = useMemo(() => {
+    if (!draftPoint || !view.width || !view.height) return null;
+    const center = project(view.center, view.zoom);
+    const point = project(draftPoint, view.zoom);
+    const x = view.width / 2 + point.x - center.x;
+    const y = view.height / 2 + point.y - center.y;
+    if (x < -60 || y < -60 || x > view.width + 60 || y > view.height + 60) {
+      return null;
+    }
+    return { x, y };
+  }, [draftPoint, view]);
+
   return (
     <>
       <section
@@ -521,10 +528,10 @@ export default function MemoryMap({
       />
       <div
         ref={rasterContainer}
-        className="map-surface raster-map"
+        className={`map-surface raster-map ${!showRasterTiles ? 'vector-visible' : ''} ${mode === 'calm' ? 'calm-mode' : 'detail-mode'}`}
         aria-label="지도 위 기억 마커"
       >
-        {rasterTiles.map((tile) => (
+        {showRasterTiles && rasterTiles.map((tile) => (
           // Raster tiles are decorative; map attribution is provided by MapLibre.
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -555,6 +562,17 @@ export default function MemoryMap({
             </button>
           );
         })}
+        {draftLocationPosition && (
+          <span
+            className="raster-draft-location"
+            role="img"
+            aria-label="선택한 기억 위치"
+            style={{
+              left: draftLocationPosition.x,
+              top: draftLocationPosition.y,
+            }}
+          />
+        )}
         {currentLocationPosition && (
           <span
             className="raster-current-location"
@@ -566,14 +584,35 @@ export default function MemoryMap({
             }}
           />
         )}
-        <a
-          className="raster-attribution"
-          href="https://www.openstreetmap.org/copyright"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          © OpenStreetMap contributors
-        </a>
+        <span className="raster-attribution">
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            © OpenStreetMap contributors
+          </a>
+          {mode === 'calm' && (
+            <>
+              {' · '}
+              <a
+                href="https://www.openmaptiles.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                © OpenMapTiles
+              </a>
+              {' · '}
+              <a
+                href="https://openfreemap.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                OpenFreeMap
+              </a>
+            </>
+          )}
+        </span>
       </div>
       {error && (
         <output className="map-error">
