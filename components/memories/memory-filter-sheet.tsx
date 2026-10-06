@@ -1,6 +1,6 @@
 'use client';
 
-import { RotateCcw, SlidersHorizontal, X } from 'lucide-react';
+import { Layers3, RotateCcw, SlidersHorizontal, X } from 'lucide-react';
 import { useState } from 'react';
 import {
   Sheet,
@@ -16,9 +16,13 @@ import type { MemoryFilters } from '@/src/features/memories/schemas';
 export default function MemoryFilterSheet({
   filters,
   onChange,
+  mapMode,
+  onMapModeChange,
 }: {
   filters: MemoryFilters;
   onChange: (filters: MemoryFilters) => void;
+  mapMode: 'calm' | 'detail';
+  onMapModeChange: (mode: 'calm' | 'detail') => void;
 }) {
   const [open, setOpen] = useState(false);
   const activeCount = Number(Boolean(filters.year)) + filters.emotions.length;
@@ -39,9 +43,9 @@ export default function MemoryFilterSheet({
         className={`map-filter-button ${activeCount ? 'active' : ''}`}
         data-tour="filter"
         onClick={() => setOpen(true)}
-        aria-label={`기억 필터 열기${activeCount ? `, ${activeCount}개 적용 중` : ''}`}
+        aria-label={`지도 조정 열기${activeCount ? `, 기억 필터 ${activeCount}개 적용 중` : ''}`}
       >
-        <SlidersHorizontal size={17} /> 필터
+        <SlidersHorizontal size={17} /> 조정
         {activeCount > 0 && <span>{activeCount}</span>}
       </button>
       <Sheet open={open} onOpenChange={setOpen}>
@@ -53,18 +57,42 @@ export default function MemoryFilterSheet({
           <span className="sheet-grip" />
           <div className="sheet-heading">
             <div>
-              <span className="eyebrow">REVISIT A MOMENT</span>
+              <span className="eyebrow">ADJUST THE MAP</span>
               <SheetTitle className="modal-heading">
-                어떤 기억을 다시 볼까요?
+                지도를 어떻게 보여드릴까요?
               </SheetTitle>
             </div>
-            <SheetClose className="close-button" aria-label="필터 닫기">
+            <SheetClose className="close-button" aria-label="지도 조정 닫기">
               <X size={20} />
             </SheetClose>
           </div>
           <SheetDescription>
-            경험한 연도와 감정을 함께 골라 지도에 남은 이야기를 좁혀보세요.
+            지도 표현을 고르고, 연도와 감정으로 보고 싶은 기억을 좁혀보세요.
           </SheetDescription>
+
+          <fieldset className="map-appearance-field">
+            <legend><Layers3 size={16} /> 지도 표현</legend>
+            <div className="map-appearance-options">
+              <button
+                type="button"
+                className={mapMode === 'calm' ? 'selected' : ''}
+                aria-pressed={mapMode === 'calm'}
+                onClick={() => onMapModeChange('calm')}
+              >
+                <strong>간결</strong>
+                <span>공원·주요 도로·행정구역 중심</span>
+              </button>
+              <button
+                type="button"
+                className={mapMode === 'detail' ? 'selected' : ''}
+                aria-pressed={mapMode === 'detail'}
+                onClick={() => onMapModeChange('detail')}
+              >
+                <strong>상세</strong>
+                <span>골목과 주변 시설까지 자세히</span>
+              </button>
+            </div>
+          </fieldset>
 
           <div className="filter-fields">
             <label>
@@ -130,7 +158,7 @@ export default function MemoryFilterSheet({
               className="primary"
               onClick={() => setOpen(false)}
             >
-              지도에서 보기
+              지도에 적용
             </button>
           </div>
         </SheetContent>

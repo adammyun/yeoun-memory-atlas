@@ -18,6 +18,8 @@ import {
 setWorkerUrl(mapLibreWorkerUrl);
 const MAP_TILE_SOURCE_REVISION = 'osm-standard-v1';
 const CALM_MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
+const MAPLIBRE_WORLD_TILE_SIZE = 512;
+const RASTER_TILE_SIZE = 256;
 
 export type MapHandle = {
   flyTo: (point: Point, zoom?: number) => void;
@@ -34,8 +36,12 @@ type ViewState = {
   height: number;
 };
 
-function project(point: Point, zoom: number) {
-  const size = 256 * 2 ** zoom;
+function project(
+  point: Point,
+  zoom: number,
+  tileSize = MAPLIBRE_WORLD_TILE_SIZE,
+) {
+  const size = tileSize * 2 ** zoom;
   const sin = Math.sin((Math.max(-85, Math.min(85, point.lat)) * Math.PI) / 180);
   return {
     x: ((point.lng + 180) / 360) * size,
@@ -452,15 +458,19 @@ export default function MemoryMap({
 
   const rasterTiles = useMemo(() => {
     if (!view.width || !view.height) return [];
-    const z = Math.max(3, Math.min(19, Math.floor(view.zoom)));
-    const scale = 2 ** (view.zoom - z);
-    const tileSize = 256 * scale;
-    const center = project(view.center, z);
-    const minX = Math.floor(center.x / 256 - view.width / (2 * tileSize)) - 1;
-    const maxX = Math.ceil(center.x / 256 + view.width / (2 * tileSize)) + 1;
-    const minY = Math.max(0, Math.floor(center.y / 256 - view.height / (2 * tileSize)) - 1);
+    // MapLibre measures the world using 512px tiles, while OSM Standard uses
+    // 256px raster tiles. Advancing the raster source by one zoom level keeps
+    // both modes at the exact same geographic scale and viewport.
+    const rasterZoom = view.zoom + Math.log2(MAPLIBRE_WORLD_TILE_SIZE / RASTER_TILE_SIZE);
+    const z = Math.max(3, Math.min(19, Math.floor(rasterZoom)));
+    const scale = 2 ** (rasterZoom - z);
+    const tileSize = RASTER_TILE_SIZE * scale;
+    const center = project(view.center, z, RASTER_TILE_SIZE);
+    const minX = Math.floor(center.x / RASTER_TILE_SIZE - view.width / (2 * tileSize)) - 1;
+    const maxX = Math.ceil(center.x / RASTER_TILE_SIZE + view.width / (2 * tileSize)) + 1;
+    const minY = Math.max(0, Math.floor(center.y / RASTER_TILE_SIZE - view.height / (2 * tileSize)) - 1);
     const edge = 2 ** z;
-    const maxY = Math.min(edge - 1, Math.ceil(center.y / 256 + view.height / (2 * tileSize)) + 1);
+    const maxY = Math.min(edge - 1, Math.ceil(center.y / RASTER_TILE_SIZE + view.height / (2 * tileSize)) + 1);
     const tiles: Array<{ key: string; src: string; left: number; top: number; size: number }> = [];
     for (let x = minX; x <= maxX; x += 1) {
       for (let y = minY; y <= maxY; y += 1) {
@@ -470,8 +480,8 @@ export default function MemoryMap({
           // Include the source revision so browsers and the edge cache cannot
           // reuse tiles left by the previous provider at the same route.
           src: `/api/map-tiles/${z}/${wrappedX}/${y}?source=${MAP_TILE_SOURCE_REVISION}`,
-          left: view.width / 2 + (x * 256 - center.x) * scale,
-          top: view.height / 2 + (y * 256 - center.y) * scale,
+          left: view.width / 2 + (x * RASTER_TILE_SIZE - center.x) * scale,
+          top: view.height / 2 + (y * RASTER_TILE_SIZE - center.y) * scale,
           size: tileSize,
         });
       }

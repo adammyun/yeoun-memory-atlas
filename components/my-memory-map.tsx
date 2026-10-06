@@ -7,7 +7,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpRight,
   Globe2,
-  Layers3,
   Leaf,
   LoaderCircle,
   LockKeyhole,
@@ -267,24 +266,6 @@ export default function MyMemoryMap({
         onCreate={setCreatePoint}
       />
 
-      <div className="map-style-toggle" role="group" aria-label="지도 표현 선택">
-        <span aria-hidden="true"><Layers3 size={15} /></span>
-        <button
-          type="button"
-          aria-pressed={mapMode === 'calm'}
-          onClick={() => setMapMode('calm')}
-        >
-          간결
-        </button>
-        <button
-          type="button"
-          aria-pressed={mapMode === 'detail'}
-          onClick={() => setMapMode('detail')}
-        >
-          상세
-        </button>
-      </div>
-
       <aside
         id="my-memory-list"
         className={`discovery my-memory-panel ${expanded ? 'expanded' : ''}`}
@@ -306,6 +287,29 @@ export default function MyMemoryMap({
         </div>
 
         <div className="my-map-filters" aria-label="내 기억 필터">
+          <fieldset className="map-appearance-field my-map-appearance">
+            <legend>지도 표현</legend>
+            <div className="map-appearance-options">
+              <button
+                type="button"
+                className={mapMode === 'calm' ? 'selected' : ''}
+                aria-pressed={mapMode === 'calm'}
+                onClick={() => setMapMode('calm')}
+              >
+                <strong>간결</strong>
+                <span>주요 지형 중심</span>
+              </button>
+              <button
+                type="button"
+                className={mapMode === 'detail' ? 'selected' : ''}
+                aria-pressed={mapMode === 'detail'}
+                onClick={() => setMapMode('detail')}
+              >
+                <strong>상세</strong>
+                <span>주변 정보 포함</span>
+              </button>
+            </div>
+          </fieldset>
           <select
             aria-label="공개 범위"
             value={filters.visibility ?? 'all'}

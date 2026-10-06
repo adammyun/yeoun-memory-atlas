@@ -8,7 +8,6 @@ import {
   ArrowUpRight,
   Check,
   Leaf,
-  Layers3,
   LoaderCircle,
   LogOut,
   LocateFixed,
@@ -460,24 +459,12 @@ export default function MemoryApp({
       />
 
       <PlaceSearch onSelect={selectSearchResult} />
-      <MemoryFilterSheet filters={filters} onChange={changeFilters} />
-      <div className="map-style-toggle" role="group" aria-label="지도 표현 선택">
-        <span aria-hidden="true"><Layers3 size={15} /></span>
-        <button
-          type="button"
-          aria-pressed={mapMode === 'calm'}
-          onClick={() => setMapMode('calm')}
-        >
-          간결
-        </button>
-        <button
-          type="button"
-          aria-pressed={mapMode === 'detail'}
-          onClick={() => setMapMode('detail')}
-        >
-          상세
-        </button>
-      </div>
+      <MemoryFilterSheet
+        filters={filters}
+        onChange={changeFilters}
+        mapMode={mapMode}
+        onMapModeChange={setMapMode}
+      />
 
       {selectedPlace && !draftLocation && (
         <section className="selected-place-card" aria-live="polite">
