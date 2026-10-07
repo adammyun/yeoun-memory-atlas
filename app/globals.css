@@ -272,6 +272,11 @@ a {
   box-shadow: 0 0 0 11px color-mix(in srgb, var(--marker-color) 30%, transparent),
     0 4px 14px #31423933;
 }
+.raster-memory-marker.grouped {
+  transform: translate(-50%, -50%) scale(1.06);
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--marker-color) 26%, transparent),
+    0 4px 12px #3142392b;
+}
 .raster-memory-marker::before {
   content: '';
   position: absolute;

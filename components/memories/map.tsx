@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Map as LibreMap,
   setWorkerUrl,
-  type GeoJSONSource,
   type Map as MapType,
 } from 'maplibre-gl';
 import mapLibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
@@ -85,10 +84,10 @@ export default function MemoryMap({
   const container = useRef<HTMLElement>(null);
   const rasterContainer = useRef<HTMLDivElement>(null);
   const map = useRef<MapType | null>(null);
-  const callbacks = useRef({ onBounds, onSelect, onCreate, memories });
+  const callbacks = useRef({ onBounds, onCreate });
   useEffect(() => {
-    callbacks.current = { onBounds, onSelect, onCreate, memories };
-  }, [onBounds, onSelect, onCreate, memories]);
+    callbacks.current = { onBounds, onCreate };
+  }, [onBounds, onCreate]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
   const [view, setView] = useState<ViewState>({
@@ -207,124 +206,9 @@ export default function MemoryMap({
       : null;
     resizeObserver?.observe(mapContainer);
     instance.on('load', () => {
-      instance.addSource('draft-location', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-      });
-      instance.addLayer({
-        id: 'draft-location-halo',
-        type: 'circle',
-        source: 'draft-location',
-        paint: {
-          'circle-color': '#486555',
-          'circle-radius': 20,
-          'circle-opacity': 0.18,
-        },
-      });
-      instance.addLayer({
-        id: 'draft-location-point',
-        type: 'circle',
-        source: 'draft-location',
-        paint: {
-          'circle-color': '#486555',
-          'circle-radius': 7,
-          'circle-stroke-width': 3,
-          'circle-stroke-color': '#fffefa',
-        },
-      });
-      instance.addSource('current-location', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-      });
-      instance.addLayer({
-        id: 'current-location-halo',
-        type: 'circle',
-        source: 'current-location',
-        paint: {
-          'circle-color': '#2676d9',
-          'circle-radius': 17,
-          'circle-opacity': 0.2,
-        },
-      });
-      instance.addLayer({
-        id: 'current-location-point',
-        type: 'circle',
-        source: 'current-location',
-        paint: {
-          'circle-color': '#2676d9',
-          'circle-radius': 7,
-          'circle-stroke-width': 3,
-          'circle-stroke-color': '#ffffff',
-        },
-      });
-      instance.addSource('memories', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-        cluster: true,
-        clusterMaxZoom: 15,
-        clusterRadius: 42,
-      });
-      instance.addLayer({
-        id: 'trace-halo',
-        type: 'circle',
-        source: 'memories',
-        filter: ['!', ['has', 'point_count']],
-        paint: {
-          'circle-color': ['get', 'color'],
-          'circle-radius': [
-            'case',
-            ['get', 'selected'],
-            27,
-            ['get', 'grouped'],
-            23,
-            20,
-          ],
-          'circle-opacity': [
-            'case',
-            ['get', 'selected'],
-            0.28,
-            ['get', 'grouped'],
-            0.22,
-            0.17,
-          ],
-          'circle-stroke-width': 1,
-          'circle-stroke-color': ['get', 'color'],
-          'circle-stroke-opacity': 0.3,
-        },
-      });
-      instance.addLayer({
-        id: 'traces',
-        type: 'circle',
-        source: 'memories',
-        filter: ['!', ['has', 'point_count']],
-        paint: {
-          'circle-color': ['get', 'color'],
-          'circle-radius': [
-            'case',
-            ['get', 'selected'],
-            9,
-            ['get', 'grouped'],
-            8,
-            7,
-          ],
-          'circle-stroke-width': ['case', ['get', 'selected'], 4, 3],
-          'circle-stroke-color': '#fffefa',
-        },
-      });
-      instance.addLayer({
-        id: 'clusters',
-        type: 'circle',
-        source: 'memories',
-        filter: ['has', 'point_count'],
-        paint: {
-          'circle-color': '#56745d',
-          'circle-radius': ['step', ['get', 'point_count'], 19, 10, 24, 50, 30],
-          'circle-opacity': 0.88,
-          'circle-stroke-width': 6,
-          'circle-stroke-color': '#56745d',
-          'circle-stroke-opacity': 0.15,
-        },
-      });
+      // Memory, selection and current-location markers are rendered once by
+      // the shared HTML overlay below. Keeping them out of the base style
+      // guarantees identical markers in calm and detailed map modes.
       setReady(true);
       syncView();
       report();
@@ -364,32 +248,8 @@ export default function MemoryMap({
         lat: event.lngLat.lat,
       });
     });
-    instance.on('click', async (e) => {
+    instance.on('click', (e) => {
       if (Date.now() < suppressUntil) return;
-      const features = instance.getLayer('traces')
-        ? instance.queryRenderedFeatures(e.point, {
-            layers: ['traces', 'trace-halo', 'clusters'],
-          })
-        : [];
-      const f = features[0];
-      if (f?.properties?.cluster) {
-        const zoom = await (
-          instance.getSource('memories') as GeoJSONSource
-        ).getClusterExpansionZoom(Number(f.properties.cluster_id));
-        if (f.geometry.type === 'Point')
-          instance.easeTo({
-            center: f.geometry.coordinates as [number, number],
-            zoom,
-          });
-        return;
-      }
-      if (f) {
-        const memory = callbacks.current.memories.find(
-          (m) => m.id === f.properties.id,
-        );
-        if (memory) callbacks.current.onSelect(memory);
-        return;
-      }
       callbacks.current.onCreate({ lng: e.lngLat.lng, lat: e.lngLat.lat });
     });
     return () => {
@@ -403,59 +263,6 @@ export default function MemoryMap({
       instance.remove();
     };
   }, [mapRef]);
-  useEffect(() => {
-    if (!ready || !map.current) return;
-    void (map.current.getSource('memories') as GeoJSONSource).setData({
-      type: 'FeatureCollection',
-      features: memories.map((m) => ({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [m.lng, m.lat] },
-        properties: {
-          id: m.id,
-          color: emotions[m.emotion].color,
-          grouped: highlightedIds.includes(m.id),
-          selected: m.id === selectedMemoryId,
-        },
-      })),
-    });
-  }, [highlightedIds, memories, ready, selectedMemoryId]);
-  useEffect(() => {
-    if (!ready || !map.current) return;
-    void (map.current.getSource('draft-location') as GeoJSONSource).setData({
-      type: 'FeatureCollection',
-      features: draftPoint
-        ? [
-            {
-              type: 'Feature',
-              geometry: {
-                type: 'Point',
-                coordinates: [draftPoint.lng, draftPoint.lat],
-              },
-              properties: {},
-            },
-          ]
-        : [],
-    });
-  }, [draftPoint, ready]);
-  useEffect(() => {
-    if (!ready || !map.current) return;
-    void (map.current.getSource('current-location') as GeoJSONSource).setData({
-      type: 'FeatureCollection',
-      features: currentLocation
-        ? [
-            {
-              type: 'Feature',
-              geometry: {
-                type: 'Point',
-                coordinates: [currentLocation.lng, currentLocation.lat],
-              },
-              properties: {},
-            },
-          ]
-        : [],
-    });
-  }, [currentLocation, ready]);
-
   const rasterTiles = useMemo(() => {
     if (!view.width || !view.height) return [];
     // MapLibre measures the world using 512px tiles, while OSM Standard uses
@@ -560,10 +367,11 @@ export default function MemoryMap({
           const memory = group.memories[0];
           const color = emotions[memory.emotion].color;
           const selected = group.memories.some((item) => item.id === selectedMemoryId);
+          const grouped = group.memories.some((item) => highlightedIds.includes(item.id));
           return (
             <button
               key={group.memories.map((item) => item.id).join(':')}
-              className={`raster-memory-marker${selected ? ' selected' : ''}`}
+              className={`raster-memory-marker${selected ? ' selected' : grouped ? ' grouped' : ''}`}
               style={{ left: group.x, top: group.y, '--marker-color': color } as React.CSSProperties}
               aria-label={group.memories.length > 1 ? `${memory.location_name}의 기억 ${group.memories.length}개` : memory.title}
               onClick={() => onSelect(memory)}
