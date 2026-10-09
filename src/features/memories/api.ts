@@ -6,6 +6,16 @@ import type {
   UserMemoryFilters,
 } from './schemas';
 import { PLACE_GROUP_LIMIT, PLACE_GROUP_RADIUS_METERS } from './constants';
+import { isPagesRuntime } from '@/src/lib/runtime';
+import {
+  browserPlaceMemoryGroup,
+  createBrowserMemory,
+  deleteBrowserMemory,
+  getBrowserPublicMemory,
+  listBrowserPublicMemories,
+  listBrowserUserMemories,
+  updateBrowserMemory,
+} from './browser-store';
 
 type ListResponse = {
   data: Memory[];
@@ -27,6 +37,9 @@ export async function fetchPublicMemories(
   filters: MemoryFilters,
   signal: AbortSignal,
 ) {
+  if (isPagesRuntime()) {
+    return listBrowserPublicMemories(bounds, filters, signal);
+  }
   const params = new URLSearchParams({
     west: String(bounds.west),
     south: String(bounds.south),
@@ -45,6 +58,7 @@ export async function fetchPublicMemories(
 }
 
 export async function fetchPublicMemory(id: string, signal: AbortSignal) {
+  if (isPagesRuntime()) return getBrowserPublicMemory(id, signal);
   const response = await fetch(`/api/memories/${encodeURIComponent(id)}`, {
     signal,
     cache: 'no-store',
@@ -79,6 +93,7 @@ export async function createMemory(
   input: CreateMemoryInput,
   images: File[] = [],
 ) {
+  if (isPagesRuntime()) return createBrowserMemory(input, images);
   const response = await fetch('/api/memories', {
     method: 'POST',
     body: memoryFormData(input, images),
@@ -104,6 +119,7 @@ export async function fetchMyMemories(
   filters: Omit<UserMemoryFilters, 'limit'>,
   signal?: AbortSignal,
 ) {
+  if (isPagesRuntime()) return listBrowserUserMemories(filters, signal);
   const params = new URLSearchParams({ limit: '300' });
   appendFilters(params, filters);
   if (filters.visibility) params.set('visibility', filters.visibility);
@@ -122,6 +138,9 @@ export async function updateMemory(
   images: File[] = [],
   removeMediaIds: string[] = [],
 ) {
+  if (isPagesRuntime()) {
+    return updateBrowserMemory(id, input, images, removeMediaIds);
+  }
   const response = await fetch(`/api/memories/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     body: memoryFormData(input, images, removeMediaIds),
@@ -142,6 +161,7 @@ export async function updateMemory(
 }
 
 export async function deleteMemory(id: string) {
+  if (isPagesRuntime()) return deleteBrowserMemory(id);
   const response = await fetch(`/api/memories/${encodeURIComponent(id)}`, {
     method: 'DELETE',
   });
@@ -157,6 +177,14 @@ export async function fetchPlaceMemoryGroup(
   memory: Pick<Memory, 'lat' | 'lng'>,
   signal: AbortSignal,
 ) {
+  if (isPagesRuntime()) {
+    return browserPlaceMemoryGroup(
+      memory,
+      PLACE_GROUP_RADIUS_METERS,
+      PLACE_GROUP_LIMIT,
+      signal,
+    );
+  }
   const params = new URLSearchParams({
     lat: String(memory.lat),
     lng: String(memory.lng),

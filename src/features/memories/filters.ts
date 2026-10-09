@@ -1,4 +1,5 @@
 import type { Memory } from './model';
+import { isPagesRuntime } from '@/src/lib/runtime';
 import {
   memoryFiltersSchema,
   userMemoryFiltersSchema,
@@ -56,6 +57,18 @@ export function replaceFilterUrl(
   if (visibility) params.set('visibility', visibility);
   else params.delete('visibility');
   const query = params.toString();
+  if (isPagesRuntime()) {
+    const current = new URL(
+      window.location.hash.slice(1) || '/',
+      'https://pages.local',
+    );
+    window.history.replaceState(
+      null,
+      '',
+      `${window.location.pathname}#${current.pathname}${query ? `?${query}` : ''}`,
+    );
+    return;
+  }
   window.history.replaceState(
     null,
     '',

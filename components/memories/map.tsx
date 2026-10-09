@@ -13,6 +13,7 @@ import {
   DEFAULT_MAP_CENTER,
   DEFAULT_MAP_ZOOM,
 } from '@/src/features/map/constants';
+import { isPagesRuntime } from '@/src/lib/runtime';
 
 setWorkerUrl(mapLibreWorkerUrl);
 const MAP_TILE_SOURCE_REVISION = 'osm-standard-v1';
@@ -286,7 +287,9 @@ export default function MemoryMap({
           key: `${z}:${x}:${y}`,
           // Include the source revision so browsers and the edge cache cannot
           // reuse tiles left by the previous provider at the same route.
-          src: `/api/map-tiles/${z}/${wrappedX}/${y}?source=${MAP_TILE_SOURCE_REVISION}`,
+          src: isPagesRuntime()
+            ? `https://tile.openstreetmap.org/${z}/${wrappedX}/${y}.png`
+            : `/api/map-tiles/${z}/${wrappedX}/${y}?source=${MAP_TILE_SOURCE_REVISION}`,
           left: view.width / 2 + (x * RASTER_TILE_SIZE - center.x) * scale,
           top: view.height / 2 + (y * RASTER_TILE_SIZE - center.y) * scale,
           size: tileSize,

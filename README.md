@@ -1,6 +1,6 @@
 # 여운 — 기억이 머무는 지도
 
-**실행 중인 앱:** [여운 기억 지도 열기](https://yeoun-memory-atlas.finn7132.chatgpt.site/)
+**실행 중인 앱:** [GitHub Pages에서 여운 기억 지도 열기](https://adammyun.github.io/yeoun-memory-atlas/)
 
 장소에 얽힌 개인의 기억을 지도에 기록하고, 같은 장소를 다른 사람들이 어떻게 기억하는지 발견하는 모바일 우선 웹 애플리케이션입니다.
 
@@ -34,7 +34,12 @@
 - Tailwind CSS 4
 - Cloudflare Workers/Wrangler
 
-이 저장소는 실제 과제 프리뷰를 위한 Worker 배포 타깃입니다. 데이터 접근은 `Route Handler → service/repository module → D1/R2` 경계를 따르며 Client Component가 DB나 storage에 직접 접근하지 않습니다.
+저장소에는 두 실행 모드가 있습니다.
+
+- **GitHub Pages:** Vite로 같은 React UI를 정적 빌드합니다. 계정 정보는 수집하지 않으며 로그인 상태는 로컬 시연 세션, 기억과 사진은 브라우저 IndexedDB에 저장합니다. 공개 seed와 사용자가 만든 기억은 해당 브라우저 안에서만 유지됩니다.
+- **Worker:** Route Handler와 Cloudflare D1/R2를 사용하는 기존 서버 배포 모드입니다. 데이터 접근은 `Route Handler → service/repository module → D1/R2` 경계를 따릅니다.
+
+GitHub Pages는 서버를 실행할 수 없으므로 Pages 버전은 여러 방문자 사이의 데이터를 동기화하지 않습니다. 외부 DB나 API 키 없이 과제의 지도 탐색, 공개 seed, 기억 CRUD, 사진, 필터, 내 기억 지도를 직접 시연하는 용도입니다.
 
 ## 지도 구성
 
@@ -100,6 +105,7 @@ pnpm db:setup
 | 변수 | 필수 | 설명 |
 | --- | --- | --- |
 | `NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID` | 아니요 | NAVER Maps Web SDK의 브라우저 공개용 Client ID |
+| `VITE_NAVER_MAPS_CLIENT_ID` | 아니요 | GitHub Pages 정적 빌드에서 사용하는 같은 종류의 공개 Client ID |
 
 NAVER Client Secret, API secret, DB credential을 `NEXT_PUBLIC_*`에 넣지 마세요. Client ID가 비어 있어도 메인 지도와 기억 기능은 정상 실행되고 거리뷰만 설정 안내 상태가 됩니다.
 
@@ -154,11 +160,22 @@ pnpm check
 
 `.github/workflows/ci.yml`도 Node 22.13과 pnpm lockfile을 사용해 push와 pull request마다 같은 네 단계를 실행합니다. 현재 자동화 테스트는 NAVER SDK의 미설정·실패·재시도·중복 로드와 Panorama 좌표 DTO 경계를 검증하며 실제 외부 API key를 요구하지 않습니다.
 
+### GitHub Pages 배포
+
+`main`에 push하면 `.github/workflows/pages.yml`이 정적 앱을 빌드하고 GitHub Pages에 배포합니다.
+
+```bash
+pnpm build:pages
+```
+
+정적 산출물은 `dist-pages/`에 생성됩니다. Pages의 기억 데이터와 사진은 IndexedDB에 저장되므로 브라우저 데이터 삭제 시 함께 초기화됩니다. NAVER 거리뷰를 사용할 경우 저장소 Actions variable `NAVER_MAPS_CLIENT_ID`와 NAVER Cloud의 Web Service URL에 `https://adammyun.github.io`를 등록해야 합니다.
+
 ## Project Structure
 
 ```text
 app/api/                  인증된 Route Handler와 public API
 components/               지도, 기억, 장소, Panorama UI
+github-pages/             GitHub Pages entry와 Next 호환 shim
 src/features/             DTO, Zod schema, client API와 feature logic
 src/server/               D1/R2 repository 및 권한·업로드 경계
 db/                       Drizzle D1 schema
